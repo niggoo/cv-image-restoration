@@ -1,7 +1,7 @@
 import torch
 import json
 from unet_small import UNet
-from dataset_cvproj import CVProjDataset
+from src.data.dataset_cvproj import CVProjDataset
 
 
 def plot_images(integral_image, predict, target):

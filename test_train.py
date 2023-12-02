@@ -1,17 +1,18 @@
 import torch
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-import lightning as L
 
+import lightning as L
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch import Trainer, seed_everything
+
 from argparse import ArgumentParser
-from tqdm import tqdm
 
 from src.model.restoration_module import RestorationLitModule
-from src.data.image_datamodule import ImageDataModule
-from src.model.unet.unet import UNet
+# Here is the place to import your stuff
+from src.data.image_datamodule import ImageDataModule as DataModule
+from src.model.unet.unet import UNet as Model
 
 
 def opts_parser():
@@ -57,9 +58,9 @@ def main():
     )
 
     # training dataset loading
-    datamodule = ImageDataModule()
+    datamodule = DataModule()
     # create pytorch lightening module
-    net = UNet(4)
+    net = Model(4)  # here is the place to init the model(s)
     pl_module = RestorationLitModule(optimizer=AdamW, scheduler=ReduceLROnPlateau, compile=False, encoder=net)
     # create monitor to keep track of learning rate - we want to check the behaviour of our learning rate schedule
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
