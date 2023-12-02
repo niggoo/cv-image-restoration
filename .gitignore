@@ -1,0 +1,7 @@
+*/checkpoints
+*/wandb
+.idea
+data_paths.json
+*/__pycache__/
+__pycache__/
+
