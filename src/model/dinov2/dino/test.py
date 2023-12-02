@@ -1,7 +1,7 @@
 import torch
 import json
 from dinov2_custom import Dinov2ForRestoration
-from dataset_cvproj import CVProjDataset
+from src.data.dataset_cvproj import CVProjDataset
 
 
 def plot_images(integral_image, predict, target):

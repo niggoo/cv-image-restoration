@@ -25,10 +25,10 @@ import aiofiles
 # to find the local modules we need to add the folders to sys.path
 cur_file_path = Path(__file__).resolve().parent
 sys.path.insert(1, cur_file_path )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'PLAN') )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'DET') )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'CAM') )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'LFR', 'python') )
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'PLAN'))
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'DET'))
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'CAM'))
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'LFR', 'python'))
 
 import pyaos
 detection = False
@@ -129,8 +129,8 @@ if __name__ == '__main__':
      ##Testing Server
 
     basedatapath = Path(__file__).resolve().parent
-    individualImageLocation = os.path.join(basedatapath, '..', 'data',sitename, 'images')
-    integralImageLocation = os.path.join(basedatapath, '..', 'data',sitename, 'testresults')
+    individualImageLocation = os.path.join(basedatapath, '..', 'data', sitename, 'images')
+    integralImageLocation = os.path.join(basedatapath, '..', 'data', sitename, 'testresults')
     individualimagelist = [x for x in glob.glob(os.path.join(individualImageLocation,'*.png'))]
     integralimagelist = [x for x in glob.glob(os.path.join(integralImageLocation,'*.png'))]
     #print(individualimagelist)

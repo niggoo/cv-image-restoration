@@ -7,7 +7,7 @@ It is based on OpenGL, uses [Dear ImGui](https://github.com/ocornut/imgui) and [
 ![alt text](../img/LFR.gif)
 
 ## [Python bindings](/LFR/python/)
-We provide Python bindings, which make it easy to use the renderer in Python projects. To compile them follow the steps described in [`/LFR/python/README`](./python/README.md).
+We provide Python bindings, which make it easy to use the renderer in Python projects. To compile them follow the steps described in [`/LFR/python/README`](python/README.md).
 
 ## Install
 To compile the renderer with the user interface in native C++ follow the steps below:

@@ -22,10 +22,10 @@ detection = False
 # to find the local modules we need to add the folders to sys.path
 cur_file_path = Path(__file__).resolve().parent
 sys.path.insert(1, cur_file_path )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'PLAN') )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'DET') )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'LFR', 'python') )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'CAM') )
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'PLAN'))
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'DET'))
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'LFR', 'python'))
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'CAM'))
 import pyaos
 detection = True
 if detection :
@@ -194,14 +194,14 @@ class InitializationClass():
         self._StartLatitudeGlobal = StartLatitudeGlobal
         self._StartLongitudeGlobal = StartLongitudeGlobal
         if self._DetectWithPiImages :
-            self._PiImagesFolder = os.path.join(self._basedatapath,'..','data', sitename, 'PiRenderedResults')
-        self._Download_Dest = os.path.join(self._basedatapath,'..','data', sitename, 'Image')
-        self._WritePosesPath = os.path.join(self._basedatapath,'..','data', sitename, 'FlightPoses')
-        self._SavProjPath = os.path.join(self._basedatapath,'..','data', sitename, 'Projections')
-        self._ObjModelPath = os.path.join(self._basedatapath,'..','data', sitename, 'DEM','dem.obj')
-        self._ObjModelImagePath = os.path.join(self._basedatapath,'..','data', sitename, 'DEM','dem.png')
-        self._LFRPath = os.path.join(self._basedatapath,'..','data', sitename, 'DEM')
-        self._DemInfoJSOn = os.path.join(self._basedatapath,'..','data', sitename, 'DEM','dem_info.json')
+            self._PiImagesFolder = os.path.join(self._basedatapath, '..', 'data', sitename, 'PiRenderedResults')
+        self._Download_Dest = os.path.join(self._basedatapath, '..', 'data', sitename, 'Image')
+        self._WritePosesPath = os.path.join(self._basedatapath, '..', 'data', sitename, 'FlightPoses')
+        self._SavProjPath = os.path.join(self._basedatapath, '..', 'data', sitename, 'Projections')
+        self._ObjModelPath = os.path.join(self._basedatapath, '..', 'data', sitename, 'DEM', 'dem.obj')
+        self._ObjModelImagePath = os.path.join(self._basedatapath, '..', 'data', sitename, 'DEM', 'dem.png')
+        self._LFRPath = os.path.join(self._basedatapath, '..', 'data', sitename, 'DEM')
+        self._DemInfoJSOn = os.path.join(self._basedatapath, '..', 'data', sitename, 'DEM', 'dem_info.json')
         with open(self._DemInfoJSOn) as json_file:
             self._DemInfoDict = json.load(json_file)
         self._CenterUTMInfo = self._DemInfoDict['centerUTM']
@@ -284,31 +284,33 @@ if __name__ == "__main__":
         GPSlogFileInfo = []
     #print(len(GPSReceivedLogFile))
 
-    CameraClass = CameraControl(FlirAttached=InitializedValuesClass._FlirAttached, AddsynthethicImage=False, out_folder = os.path.join(InitializedValuesClass._basedatapath,'..','data', InitializedValuesClass._sitename, 'log'))
+    CameraClass = CameraControl(FlirAttached=InitializedValuesClass._FlirAttached, AddsynthethicImage=False, out_folder = os.path.join(InitializedValuesClass._basedatapath,
+                                                                                                                                       '..', 'data', InitializedValuesClass._sitename, 'log'))
     
     # interpolation is done here. 
-    DroneCommunicationClass = DroneCommunication(simulate=False,GPSLog=GPSlogFileInfo, interpolation=True,extrapolate=False, AddSynthethicImage=False,FlirAttached = InitializedValuesClass._FlirAttached,
-                                                 out_folder=os.path.join(InitializedValuesClass._basedatapath,'..','data', InitializedValuesClass._sitename, 'log'))
+    DroneCommunicationClass = DroneCommunication(simulate=False, GPSLog=GPSlogFileInfo, interpolation=True, extrapolate=False, AddSynthethicImage=False, FlirAttached = InitializedValuesClass._FlirAttached,
+                                                 out_folder=os.path.join(InitializedValuesClass._basedatapath, '..', 'data', InitializedValuesClass._sitename, 'log'))
     # geotagged images are the output here (interpolation and adding GPS) -> input to FlyingControl
     # many more images than are actually used
     
     # check if waypoint reached, planning the next waypoints, send waypoint to DroneCom
     # selects frames which are one meter apart and send it to Renderer
     # Planner is in here
-    FlyingControlClass = DroneFlyingControl(sitename = InitializedValuesClass._sitename,CenterEast = InitializedValuesClass._CenterEast,CenterNorth = InitializedValuesClass._CenterNorth,
-                                            objectmodelpath=InitializedValuesClass._ObjModelPath,basedatapath=InitializedValuesClass._basedatapath,Render=True,
-                                            FlirAttached = InitializedValuesClass._FlirAttached,Flying_Height = InitializedValuesClass._Flying_Height,
-                                            DroneFlyingSpeed = InitializedValuesClass._DroneFlyingSpeed,RenderAfter = 2,CenterUTMInfo=InitializedValuesClass._CenterUTMInfo,
-                                            out_folder=os.path.join(InitializedValuesClass._basedatapath,'..','data', InitializedValuesClass._sitename, 'images'),
-                                            area_sides=InitializedValuesClass._area_sides,GridSideLength=InitializedValuesClass._GridSideLength,GridAlignedPathPlanning=InitializedValuesClass._GridAlignedPathPlanning,
-                                            prob_map=InitializedValuesClass._prob_map,UpdatePathPlanningflag = InitializedValuesClass._UpdatePathPlanning,
+    FlyingControlClass = DroneFlyingControl(sitename = InitializedValuesClass._sitename, CenterEast = InitializedValuesClass._CenterEast, CenterNorth = InitializedValuesClass._CenterNorth,
+                                            objectmodelpath=InitializedValuesClass._ObjModelPath, basedatapath=InitializedValuesClass._basedatapath, Render=True,
+                                            FlirAttached = InitializedValuesClass._FlirAttached, Flying_Height = InitializedValuesClass._Flying_Height,
+                                            DroneFlyingSpeed = InitializedValuesClass._DroneFlyingSpeed, RenderAfter = 2, CenterUTMInfo=InitializedValuesClass._CenterUTMInfo,
+                                            out_folder=os.path.join(InitializedValuesClass._basedatapath, '..', 'data', InitializedValuesClass._sitename, 'images'),
+                                            area_sides=InitializedValuesClass._area_sides, GridSideLength=InitializedValuesClass._GridSideLength, GridAlignedPathPlanning=InitializedValuesClass._GridAlignedPathPlanning,
+                                            prob_map=InitializedValuesClass._prob_map, UpdatePathPlanningflag = InitializedValuesClass._UpdatePathPlanning,
                                             adddebugInfo=True)
     
     # Renderer does undistortion, LFR, DET
-    RendererClass = Renderer(CenterUTMInfo=InitializedValuesClass._CenterUTMInfo,ObjModelPath=InitializedValuesClass._ObjModelPath,
-                            Detect=True,ObjModelImagePath=InitializedValuesClass._ObjModelImagePath,basedatapath=InitializedValuesClass._basedatapath,
-                            sitename=InitializedValuesClass._sitename,results_folder=os.path.join(InitializedValuesClass._basedatapath,'..','data',InitializedValuesClass._sitename, 'results'),
-                            FieldofView=InitializedValuesClass._FieldofView,device="MYRIAD",adddebuginfo=True,uploadserver=True,baseserver=base_url1,locationid=location_ref)
+    RendererClass = Renderer(CenterUTMInfo=InitializedValuesClass._CenterUTMInfo, ObjModelPath=InitializedValuesClass._ObjModelPath,
+                             Detect=True, ObjModelImagePath=InitializedValuesClass._ObjModelImagePath, basedatapath=InitializedValuesClass._basedatapath,
+                             sitename=InitializedValuesClass._sitename, results_folder=os.path.join(InitializedValuesClass._basedatapath,
+                                                                                                    '..', 'data', InitializedValuesClass._sitename, 'results'),
+                             FieldofView=InitializedValuesClass._FieldofView, device="MYRIAD", adddebuginfo=True, uploadserver=True, baseserver=base_url1, locationid=location_ref)
 
     serverclass = ServerUpload(serveraddress=base_url1,locationid= location_ref)
     

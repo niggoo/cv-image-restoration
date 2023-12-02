@@ -17,7 +17,7 @@ import sys
 # to find the local modules we need to add the folders to sys.path
 cur_file_path = Path(__file__).resolve().parent
 sys.path.insert(1, cur_file_path )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'PLAN') )
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'PLAN'))
 
 from Planner import Planner
 from utils import FindStartingHeight, haversine, ReadInterpolatedGPSlogFiles, CreateText, smtp_connect
@@ -299,7 +299,7 @@ class DroneFlyingControl():
                                 ##########################store the sample for future consideration
                                 if self._GrabVideoFrames :
                                     if self._ReadfromFile :
-                                        ReadImageName = os.path.join(self._basedatapath,'..', 'data', self._sitename, 'PiFrameGrabber', str(NoofPlannedPath)+'_'+str(NoofPointsinPreviousPath)+'.png')
+                                        ReadImageName = os.path.join(self._basedatapath, '..', 'data', self._sitename, 'PiFrameGrabber', str(NoofPlannedPath) + '_' + str(NoofPointsinPreviousPath) + '.png')
                                         Frame = cv2.imread(ReadImageName)
                                     else :
                                         Frame = ReceivedCurrentDroneData['Image']
@@ -530,11 +530,11 @@ if __name__ == '__main__':
     #GpsLogFile = os.path.join(basedatapath, 'FlightResults',sitename, 'GPSLog.log')
 
     basedatapath = Path(__file__).resolve().parent
-    ImageLocation = os.path.join(basedatapath, '..', 'data',sitename, 'images')
-    ObjModelPath = os.path.join(basedatapath, '..', 'data',sitename, 'DEM','dem.obj')
-    ObjModelImagePath = os.path.join(basedatapath,'..', 'data', sitename, 'DEM','dem.png')
-    DemInfoJSOn = os.path.join(basedatapath, '..', 'data',sitename, 'DEM','dem_info.json')
-    GpsLogFile = os.path.join(basedatapath, '..', 'data',sitename, 'log','GPSLog.log')
+    ImageLocation = os.path.join(basedatapath, '..', 'data', sitename, 'images')
+    ObjModelPath = os.path.join(basedatapath, '..', 'data', sitename, 'DEM', 'dem.obj')
+    ObjModelImagePath = os.path.join(basedatapath, '..', 'data', sitename, 'DEM', 'dem.png')
+    DemInfoJSOn = os.path.join(basedatapath, '..', 'data', sitename, 'DEM', 'dem_info.json')
+    GpsLogFile = os.path.join(basedatapath, '..', 'data', sitename, 'log', 'GPSLog.log')
 
     with open(DemInfoJSOn) as json_file:
         DemInfoDict = json.load(json_file)
@@ -558,7 +558,7 @@ if __name__ == '__main__':
     FlyingProcessEvent = multiprocessing.Event()
     RecordEvent = multiprocessing.Event()
 
-    InterPolatedGPSReceivedLogFileName = os.path.join(basedatapath, '..', 'data',sitename, 'log','GPSInterpolatedLog.log')
+    InterPolatedGPSReceivedLogFileName = os.path.join(basedatapath, '..', 'data', sitename, 'log', 'GPSInterpolatedLog.log')
     InterpolatedLat, InterpolatedLon, InterpolatedAlt, InterpolatedCompass, InterpolatedTargetHoldTime = ReadInterpolatedGPSlogFiles(InterPolatedGPSReceivedLogFileName)
 
     #utm_center = (CenterUTMInfo[0], CenterUTMInfo[1], CenterUTMInfo[2], CenterUTMInfo[3])

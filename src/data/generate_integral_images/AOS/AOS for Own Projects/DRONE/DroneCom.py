@@ -15,7 +15,7 @@ import sys
 # to find the local modules we need to add the folders to sys.path
 cur_file_path = Path(__file__).resolve().parent
 sys.path.insert(1, cur_file_path )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'CAM') )
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'CAM'))
 
 from CameraControl import CameraControl
 from scipy import interpolate
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     
     sitename = 'open_field'
     basedatapath = Path(__file__).resolve().parent
-    GPSReceivedLogFile = os.path.join(basedatapath, '..', 'data',sitename, 'log','GPSReceivedLog.log')
+    GPSReceivedLogFile = os.path.join(basedatapath, '..', 'data', sitename, 'log', 'GPSReceivedLog.log')
     GPSlogFileInfo = ReadGPSReceivedLogFiles(GPSReceivedLogFile)
 
     CameraClass = CameraControl(FlirAttached=False, AddsynthethicImage=True, out_folder = out_folder)

@@ -25,10 +25,10 @@ import aiofiles
 # to find the local modules we need to add the folders to sys.path
 cur_file_path = Path(__file__).resolve().parent
 sys.path.insert(1, cur_file_path )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'PLAN') )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'DET') )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'CAM') )
-sys.path.insert(1, os.path.join(cur_file_path, '..', 'LFR', 'python') )
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'PLAN'))
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'DET'))
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'CAM'))
+sys.path.insert(1, os.path.join(cur_file_path, '..', 'LFR', 'python'))
 
 import pyaos
 detection = True
@@ -303,7 +303,7 @@ class Renderer :
         #weightsXmlFile = os.path.join(".","weights","vL.56","APall",self._yoloversion,self._aug,self._yoloversion+'.xml')
         try:
             cur_file_path = Path(__file__).resolve().parent
-            weightsXmlFile = os.path.join(cur_file_path, '..', 'DET',"weights",self._yoloversion+'.xml')
+            weightsXmlFile = os.path.join(cur_file_path, '..', 'DET', "weights", self._yoloversion + '.xml')
             if self._Render == True or self._Detect == True :
                 if 'window' not in locals() or window == None: 
                     window = init_window() # only init the window once (causes problems if closed and loaded again!)
@@ -504,11 +504,11 @@ if __name__ == '__main__':
     #GpsLogFile = os.path.join(basedatapath, 'FlightResults',sitename, 'GPSLog.log')
 
     basedatapath = Path(__file__).resolve().parent
-    ImageLocation = os.path.join(basedatapath, '..', 'data',sitename, 'images')
-    ObjModelPath = os.path.join(basedatapath, '..', 'data',sitename, 'DEM','dem.obj')
-    ObjModelImagePath = os.path.join(basedatapath,'..', 'data', sitename, 'DEM','dem.png')
-    DemInfoJSOn = os.path.join(basedatapath, '..', 'data',sitename, 'DEM','dem_info.json')
-    GpsLogFile = os.path.join(basedatapath, '..', 'data',sitename, 'log','GPSLog.log')
+    ImageLocation = os.path.join(basedatapath, '..', 'data', sitename, 'images')
+    ObjModelPath = os.path.join(basedatapath, '..', 'data', sitename, 'DEM', 'dem.obj')
+    ObjModelImagePath = os.path.join(basedatapath, '..', 'data', sitename, 'DEM', 'dem.png')
+    DemInfoJSOn = os.path.join(basedatapath, '..', 'data', sitename, 'DEM', 'dem_info.json')
+    GpsLogFile = os.path.join(basedatapath, '..', 'data', sitename, 'log', 'GPSLog.log')
 
     with open(DemInfoJSOn) as json_file:
         DemInfoDict = json.load(json_file)
@@ -528,7 +528,8 @@ if __name__ == '__main__':
     MedianAltitude =  statistics.median(AltitudeExtendedCellList)
     
     if test_planner:
-        PlanningAlgo = Planner( utm_center=(CenterUTMInfo[0], CenterUTMInfo[1], CenterUTMInfo[2], CenterUTMInfo[3]), area_size= (90,90), tile_distance = 30,  prob_map= None, debug=False,vis=None, results_folder=os.path.join(basedatapath, '..', 'data', sitename, 'testresults'),gridalignedplanpath=True)
+        PlanningAlgo = Planner(utm_center=(CenterUTMInfo[0], CenterUTMInfo[1], CenterUTMInfo[2], CenterUTMInfo[3]), area_size= (90,90), tile_distance = 30, prob_map= None, debug=False, vis=None, results_folder=os.path.join(basedatapath,
+                                                                                                                                                                                                                               '..', 'data', sitename, 'testresults'), gridalignedplanpath=True)
         TestPlanner = [31,62,95] 
     #TestRenderer = Renderer(CenterUTMInfo,ObjModelPath,ObjModelImagePath,SaveImagePath,sitename,Detect=False,adddebuginfo=True)
     ud = Undistort()
@@ -554,9 +555,9 @@ if __name__ == '__main__':
     #FieldofView=float(FieldofView),adddebuginfo=True,Detect=detection)
 
     ###Testing Server
-    RendererClass = Renderer(CenterUTMInfo=CenterUTMInfo,ObjModelPath=ObjModelPath, ObjModelImagePath=ObjModelImagePath,basedatapath=basedatapath,
-    sitename=sitename,results_folder=os.path.join(basedatapath, '..', 'data', sitename, 'testresults'), device="MYRIAD", # device should be MYRIAD for Neural Compute Stick
-    FieldofView=float(FieldofView),adddebuginfo=True,Detect=detection,uploadserver=True,baseserver=base_url1,locationid=locationid)
+    RendererClass = Renderer(CenterUTMInfo=CenterUTMInfo, ObjModelPath=ObjModelPath, ObjModelImagePath=ObjModelImagePath, basedatapath=basedatapath,
+                             sitename=sitename, results_folder=os.path.join(basedatapath, '..', 'data', sitename, 'testresults'), device="MYRIAD",  # device should be MYRIAD for Neural Compute Stick
+                             FieldofView=float(FieldofView), adddebuginfo=True, Detect=detection, uploadserver=True, baseserver=base_url1, locationid=locationid)
 
     RenderProcess = multiprocessing.Process(name = 'RenderProcess', target=RendererClass.RendererandDetectContinuous, args=(RenderingQueue, DetectionInfoQueue, uploadqueue, RenderingProcessEvent,))
     #threads.append(RenderThread)

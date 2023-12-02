@@ -37,11 +37,11 @@ if __name__ == '__main__':
     aos = init_aos(fov=fov)
     basedatapath = Path(__file__).resolve().parent
     # load a digital terrain
-    aos.loadDEM( os.path.join(basedatapath, '..', 'data', 'F0', 'DEM', 'dem.obj') )
+    aos.loadDEM(os.path.join(basedatapath, '..', 'data', 'F0', 'DEM', 'dem.obj'))
 
     # load multiple images and corresponding poses
-    pose_file = os.path.join( basedatapath, '..', 'data', 'F0', 'poses', 'poses_first30.json')
-    images_dir = os.path.join( basedatapath, '..', 'data', 'F0', 'images_ldr' )
+    pose_file = os.path.join(basedatapath, '..', 'data', 'F0', 'poses', 'poses_first30.json')
+    images_dir = os.path.join(basedatapath, '..', 'data', 'F0', 'images_ldr')
     single_images, site_poses = read_poses_and_images(aos,pose_file, images_dir, adjust_mean=False, replace_ext='.png' )
     center_index = int(round(len(single_images) / 2))
 

@@ -57,7 +57,7 @@ cv2.waitKey()
 ## More detailed usage
 
 The training was performed with the [Darknet](https://github.com/AlexeyAB/darknet) software using the YOLOv4-tiny architecture. For details on training the classifier, refer to our most recent [publications](/README.md#publications).
-A trained network is provided in the [`weights` folder.](./weights)
+A trained network is provided in the [`weights` folder.](weights)
 
 
 ## References/License

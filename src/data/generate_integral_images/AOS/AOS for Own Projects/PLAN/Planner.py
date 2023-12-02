@@ -716,7 +716,7 @@ if __name__ == '__main__':
     
     
     # path to the digital elevation model as required by the Visualizer
-    dem_path = os.path.join( Path(__file__).parent.absolute(), '..',  'data', '20210525_conifer2', 'DEM' )
+    dem_path = os.path.join(Path(__file__).parent.absolute(), '..', 'data', '20210525_conifer2', 'DEM')
     vis = Visualizer( dem_path ) # initialize an instance of the visualizer (this is optional)
 
     prob_map =   None 
