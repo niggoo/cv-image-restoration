@@ -2,18 +2,18 @@ from pathlib import Path
 import json
 
 
-def generate_data_paths_dict(raw_folder, integral_folder, focal_planes=None):
+def generate_data_paths_dict(raw_folder, integral_folder, embedding_folder, focal_planes=None):
     if focal_planes is None:
         focal_planes = [0.0, -0.5, -1, -1.5]
 
     integral_files = Path(integral_folder).rglob("*.png")
     raw_files = list(Path(raw_folder).rglob("*.png"))
     raw_files += Path(raw_folder).rglob("*.txt")
+    embedding_files = Path(embedding_folder).rglob("*.safetensors")
 
     # setup dict using integral files
     data_paths = {}
     for int_image in integral_files:
-
         batch_part = Path("/".join(int_image.parent.parts[-3:-1])).__str__()
         file_name = int_image.name
         image_focal_plane = float(int_image.stem.split("_")[-1][2:])
@@ -28,6 +28,22 @@ def generate_data_paths_dict(raw_folder, integral_folder, focal_planes=None):
             data_paths[batch_part][image_id]["integral_images"] = []
         if image_focal_plane in focal_planes:
             data_paths[batch_part][image_id]["integral_images"].append(file_str)
+
+    for embedd in embedding_files:
+        batch_part = Path("/".join(embedd.parent.parts[-3:-1])).__str__()
+        file_name = embedd.name
+        image_focal_plane = float(embedd.stem.split("_")[-1][2:])
+        image_id = "_".join(file_name.split("_")[0:2])
+        file_str = embedd.absolute().__str__()
+
+        if batch_part not in data_paths:
+            data_paths[batch_part] = {}
+        if image_id not in data_paths[batch_part]:
+            data_paths[batch_part][image_id] = {}
+        if "embeddings" not in data_paths[batch_part][image_id]:
+            data_paths[batch_part][image_id]["embeddings"] = []
+        if image_focal_plane in focal_planes:
+            data_paths[batch_part][image_id]["embeddings"].append(file_str)
 
     # add raw images to dict
     for raw_file in raw_files:
@@ -62,7 +78,11 @@ def generate_data_paths_dict(raw_folder, integral_folder, focal_planes=None):
                 errors.append("parameters not found")
             n_integral_images = len(data_paths[batch][image_id]["integral_images"])
             if n_integral_images != len(focal_planes):
-                errors.append(f"integral images {n_integral_images} not {len(focal_planes)}")
+                errors.append(f"integral images are {n_integral_images} not {len(focal_planes)}")
+            n_embeddings = len(data_paths[batch][image_id]["embeddings"])
+            if n_embeddings != len(focal_planes):
+                errors.append(f"embeddings are {n_integral_images} not {len(focal_planes)}")
+
 
             if len(errors) > 0:
                 print(batch, image_id, errors)
@@ -78,14 +98,19 @@ def generate_data_paths_dict(raw_folder, integral_folder, focal_planes=None):
 
 
 if __name__ == "__main__":
-    raw_folder = "../data/download"
-    integral_folder = "../data/integral_images"
-    data_paths = generate_data_paths_dict(raw_folder, integral_folder)
+    raw_folder = "/home/nico/Projects/cv-image-restoration/downloaded/original_dataset"
+    integral_folder = "/home/nico/Projects/cv-image-restoration/downloaded/paul"
+    embedding_folder = "/home/nico/Projects/cv-image-restoration/downloaded/dino_embeddings"
+
+    data_paths = generate_data_paths_dict(raw_folder, integral_folder, embedding_folder)
 
     # print some stats
     print("number of batches:", len(data_paths))
     print("number of integral images:",
           sum([len(data_paths[batch][image_id]["integral_images"]) for batch in data_paths for image_id in
+               data_paths[batch]]))
+    print("number of embeddings:",
+          sum([len(data_paths[batch][image_id]["embeddings"]) for batch in data_paths for image_id in
                data_paths[batch]]))
     print("number of raw images:",
           sum([len(data_paths[batch][image_id]["raw_images"]) for batch in data_paths for image_id in
@@ -105,7 +130,9 @@ if __name__ == "__main__":
                       "GT": data_paths[batch][image_id]["GT"],
                       "raw_images": data_paths[batch][image_id]["raw_images"],
                       "parameters": data_paths[batch][image_id]["parameters"],
-                      "integral_images": data_paths[batch][image_id]["integral_images"]}
+                      "integral_images": data_paths[batch][image_id]["integral_images"],
+                      "embeddings": data_paths[batch][image_id]["embeddings"]
+                      }
             data_paths_list.append(sample)
 
     # save data_paths_list as json
