@@ -58,7 +58,7 @@ def main():
     )
 
     # training dataset loading
-    datamodule = DataModule()
+    datamodule = DataModule(data_paths_json_path="src/data/data_paths.json")
     # create pytorch lightening module
     net = Model(4)  # here is the place to init the model(s)
     pl_module = RestorationLitModule(optimizer=AdamW, scheduler=ReduceLROnPlateau, compile=False, encoder=net)

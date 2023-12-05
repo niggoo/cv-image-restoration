@@ -1,29 +1,33 @@
 import glob
+import json
 from typing import Any, Dict, Optional, Tuple
-
+import random
 import torch
+import torchvision
 from lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
+from torchvision.io import ImageReadMode
 
 
-# if needed implement collate_fn for DataLoader for stacking the samples to batches
-def collate_fn():
-    pass
-
-
-# TODO implement ImageDataset
 class ImageDataSet(Dataset):
-    def __init__(self, data_dirc: str):
+    def __init__(self, data_paths: dict):
         super().__init__()
-        self.files = glob.glob(data_dirc)
+        self.data_paths = data_paths
 
     def __len__(self):
-        return 5000
+        return len(self.data_paths)
 
     # This thing should be efficient as it gets
     def __getitem__(self, idx):
-        # should return image as value between 0 and 1
-        return torch.randn((4, 256, 256)), torch.randn((1, 256, 256))  # just some mockup data
+        # get the sample
+        sample = self.data_paths[idx]
+        # load the GT image
+        gt = torchvision.io.read_image(sample["GT"], ImageReadMode.GRAY).float()
+        # load integral images and stack along the channel dimension
+        integral_images = torch.stack([torchvision.io.read_image(image, ImageReadMode.GRAY)
+                                       for image in sample["integral_images"]], dim=0).squeeze().float()
+
+        return integral_images / 255.0, gt / 255.0  # "normalize" to [0, 1]
 
 
 class ImageDataModule(LightningDataModule):
@@ -59,12 +63,12 @@ class ImageDataModule(LightningDataModule):
     """
 
     def __init__(
-        self,
-        data_dir: str="data/",
-        data_split: Tuple[float, float, float]=(0.80, 0.1, 0.1),
-        batch_size: int=8,
-        num_workers: int=0,
-        pin_memory: bool=False,
+            self,
+            data_paths_json_path: str = "../data/data_paths.json",
+            data_split: Tuple[float, float, float] = (0.80, 0.1, 0.1),
+            batch_size: int = 8,
+            num_workers: int = 0,
+            pin_memory: bool = False,
     ) -> None:
         """Initialize a DataModule.
 
@@ -80,6 +84,9 @@ class ImageDataModule(LightningDataModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)  # True --> we additionally log the hyperparameter
 
+        self.data_paths_json_path = data_paths_json_path
+        self.data_split = data_split
+
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
@@ -94,7 +101,6 @@ class ImageDataModule(LightningDataModule):
 
         Do not use it to assign state (self.x = y).
         """
-        # TODO maybe assemble the samples from json if needed
         pass
 
     def setup(self, stage: Optional[str] = None) -> None:
@@ -107,6 +113,22 @@ class ImageDataModule(LightningDataModule):
 
         :param stage: The stage to setup. Either `"fit"`, `"validate"`, `"test"`, or `"predict"`. Defaults to ``None``.
         """
+
+        data_paths = []
+        with open(self.data_paths_json_path) as file:
+            data_paths = json.load(file)
+
+        random.seed(42)
+        random.shuffle(data_paths)
+
+        total_items = len(data_paths)
+        train_size = int(total_items * self.data_split[0])
+        val_size = int(total_items * self.data_split[1])
+
+        self.data_train: Optional[Dataset] = ImageDataSet(data_paths[:train_size])
+        self.data_val: Optional[Dataset] = ImageDataSet(data_paths[train_size:train_size + val_size])
+        self.data_test: Optional[Dataset] = ImageDataSet(data_paths[train_size + val_size:])
+
         # Divide batch size by the number of devices.
         # Only useful for multiple GPUs, let it be or remove it
         if self.trainer is not None:
