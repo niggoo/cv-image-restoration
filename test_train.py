@@ -11,7 +11,7 @@ from argparse import ArgumentParser
 
 from src.model.restoration_module import RestorationLitModule
 # Here is the place to import your stuff
-from src.data.image_datamodule import ImageDataModule as DataModule
+from src.data.emb_datamodule import DinoEmbeddingDataModule as DataModule
 from src.model.unet.unet import UNet as Model
 
 

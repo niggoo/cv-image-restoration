@@ -85,7 +85,6 @@ class ImageDataModule(LightningDataModule):
         self.save_hyperparameters(logger=False)  # True --> we additionally log the hyperparameter
 
         self.data_paths_json_path = data_paths_json_path
-        self.data_split = data_split
 
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
@@ -122,8 +121,8 @@ class ImageDataModule(LightningDataModule):
         random.shuffle(data_paths)
 
         total_items = len(data_paths)
-        train_size = int(total_items * self.data_split[0])
-        val_size = int(total_items * self.data_split[1])
+        train_size = int(total_items * self.hparams.data_split[0])
+        val_size = int(total_items * self.hparams.data_split[1])
 
         self.data_train: Optional[Dataset] = ImageDataSet(data_paths[:train_size])
         self.data_val: Optional[Dataset] = ImageDataSet(data_paths[train_size:train_size + val_size])
@@ -137,11 +136,6 @@ class ImageDataModule(LightningDataModule):
                     f"Batch size ({self.hparams.batch_size}) is not divisible by the number of devices ({self.trainer.world_size})."
                 )
             self.batch_size_per_device = self.hparams.batch_size // self.trainer.world_size
-
-        # load and split datasets only if not loaded already
-        if not self.data_train and not self.data_val and not self.data_test:
-            dataset = ImageDataSet(self.hparams.data_dir)
-            self.data_train, self.data_val, self.data_test = random_split(dataset, self.hparams.data_split)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
