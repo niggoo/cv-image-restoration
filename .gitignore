@@ -6,3 +6,7 @@ data_paths.json
 __pycache__/
 data/**
 downloaded/
+*.ckpt
+*.png
+transformers/**
+wandb/**

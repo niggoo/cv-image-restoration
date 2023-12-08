@@ -2,7 +2,9 @@ from pathlib import Path
 import json
 
 
-def generate_data_paths_dict(raw_folder, integral_folder, embedding_folder, focal_planes=None):
+def generate_data_paths_dict(
+    raw_folder, integral_folder, embedding_folder, focal_planes=None
+):
     if focal_planes is None:
         focal_planes = [0.0, -0.5, -1, -1.5]
 
@@ -82,10 +84,14 @@ def generate_data_paths_dict(raw_folder, integral_folder, embedding_folder, foca
                     errors.append("parameters not found")
                 n_integral_images = len(data_paths[batch][image_id]["integral_images"])
                 if n_integral_images < len(focal_planes):
-                    errors.append(f"integral images are {n_integral_images} not {len(focal_planes)}")
+                    errors.append(
+                        f"integral images are {n_integral_images} not {len(focal_planes)}"
+                    )
                 n_embeddings = len(data_paths[batch][image_id]["embeddings"])
                 if n_embeddings < len(focal_planes):
-                    errors.append(f"embeddings are {n_integral_images} not {len(focal_planes)}")
+                    errors.append(
+                        f"embeddings are {n_integral_images} not {len(focal_planes)}"
+                    )
             else:
                 errors.append(f"sample is missing something, keys are {keys}")
 
@@ -103,45 +109,87 @@ def generate_data_paths_dict(raw_folder, integral_folder, embedding_folder, foca
 
 
 if __name__ == "__main__":
-
-    p = r"C:\Users\pauld\OneDrive - Johannes Kepler Universität Linz\Master\Semester1\Computer Vision\project\data"
-    raw_folder = p + r"\download"
-    integral_folder = p + r"\integral_images"
-    embedding_folder = r"D:\Computer_Vision\small"
+    p = r"/home/markus-frohmann/cv-image-restoration/data"
+    raw_folder = p + r"/original"
+    integral_folder = p + r"/proc"
+    embedding_folder = p + r"/embeddings/full/small"
 
     data_paths = generate_data_paths_dict(raw_folder, integral_folder, embedding_folder)
 
     # print some stats
     print("number of batches:", len(data_paths))
-    print("number of integral images:",
-          sum([len(data_paths[batch][image_id]["integral_images"]) for batch in data_paths for image_id in
-               data_paths[batch]]))
-    print("number of embeddings:",
-          sum([len(data_paths[batch][image_id]["embeddings"]) for batch in data_paths for image_id in
-               data_paths[batch]]))
-    print("number of raw images:",
-          sum([len(data_paths[batch][image_id]["raw_images"]) for batch in data_paths for image_id in
-               data_paths[batch]]))
-    print("number of GT images:",
-          sum(["GT" in data_paths[batch][image_id] for batch in data_paths for image_id in data_paths[batch]]))
-    print("number of parameter files:",
-          sum(["parameters" in data_paths[batch][image_id] for batch in data_paths for image_id in data_paths[batch]]))
+    print(
+        "number of integral images:",
+        sum(
+            [
+                len(data_paths[batch][image_id]["integral_images"])
+                for batch in data_paths
+                for image_id in data_paths[batch]
+            ]
+        ),
+    )
+    print(
+        "number of embeddings:",
+        sum(
+            [
+                len(data_paths[batch][image_id]["embeddings"])
+                for batch in data_paths
+                for image_id in data_paths[batch]
+            ]
+        ),
+    )
+    print(
+        "number of raw images:",
+        sum(
+            [
+                len(data_paths[batch][image_id]["raw_images"])
+                for batch in data_paths
+                for image_id in data_paths[batch]
+            ]
+        ),
+    )
+    print(
+        "number of GT images:",
+        sum(
+            [
+                "GT" in data_paths[batch][image_id]
+                for batch in data_paths
+                for image_id in data_paths[batch]
+            ]
+        ),
+    )
+    print(
+        "number of parameter files:",
+        sum(
+            [
+                "parameters" in data_paths[batch][image_id]
+                for batch in data_paths
+                for image_id in data_paths[batch]
+            ]
+        ),
+    )
 
     # change data_paths to a list of sample dicts -->
     # [{"batch": batch, "image_id": image_id, "GT": GT, "raw_images": raw_images, "parameters": parameters, "integral_images": integral_images}, ...]
     data_paths_list = []
-    for batch in data_paths:
-        for image_id in data_paths[batch]:
-            sample = {"batch": batch,
-                      "image_id": image_id,
-                      "GT": data_paths[batch][image_id]["GT"],
-                      "raw_images": data_paths[batch][image_id]["raw_images"],
-                      "parameters": data_paths[batch][image_id]["parameters"],
-                      "integral_images": data_paths[batch][image_id]["integral_images"],
-                      "embeddings": data_paths[batch][image_id]["embeddings"]
-                      }
+    for b_idx, batch in enumerate(data_paths):
+        for idx, image_id in enumerate(data_paths[batch]):
+            sample = {
+                "batch": batch,
+                "image_id": image_id,
+                "GT": data_paths[batch][image_id]["GT"],
+                "raw_images": data_paths[batch][image_id]["raw_images"],
+                "parameters": data_paths[batch][image_id]["parameters"],
+                "integral_images": data_paths[batch][image_id]["integral_images"],
+                "embeddings": data_paths[batch][image_id]["embeddings"],
+            }
             data_paths_list.append(sample)
+            if idx > 1000:
+                break
+        if b_idx > 0:
+            break
+    print(len(data_paths_list))
 
     # save data_paths_list as json
-    with open('data_paths.json', 'w') as outfile:
+    with open("data_paths.json", "w") as outfile:
         json.dump(data_paths_list, outfile, indent=4)

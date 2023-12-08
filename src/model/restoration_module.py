@@ -7,6 +7,8 @@ from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.image.psnr import PeakSignalNoiseRatio
 
+from ..utils.metrics import SILogLoss, ScaleAndShiftInvariantLoss, DiscreteNLLLoss
+
 
 class RestorationLitModule(LightningModule):
     """Example of a `LightningModule` for MNIST classification.
@@ -60,13 +62,15 @@ class RestorationLitModule(LightningModule):
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         # ignore takes out the torch modules, otherwise they are saved twice
-        self.save_hyperparameters(logger=False, ignore=['encoder', 'decoder'])  # True --> we additionally log the hyperparameter
+        self.save_hyperparameters(
+            logger=False, ignore=["encoder", "decoder"]
+        )  # True --> we additionally log the hyperparameter
 
         self.encoder = encoder
         self.decoder = decoder
 
         # loss function
-        self.loss_fn = torch.nn.MSELoss()
+        self.loss_fn = nn.MSELoss()
 
         # metric objects for calculating and averaging across batches
         self.train_psnr = PeakSignalNoiseRatio(data_range=1)
@@ -113,7 +117,16 @@ class RestorationLitModule(LightningModule):
         """
         x, gt = batch
         restored = self.forward(x)
-        restored = restored + gt  # predicts the residual not the
+        # check for nan values
+        if torch.isnan(restored).any():
+            print("Nan values in prediction")
+            # replace with zeros
+            restored[torch.isnan(restored)] = 0
+            raise ValueError("Nan values in prediction")
+        # restored = restored + gt
+        # mask = torch.where(
+        #     gt == 0, torch.tensor(0.0).to(gt.device), torch.tensor(1.0).to(gt.device)
+        # ).to(gt.device).bool()
         loss = self.loss_fn(restored, gt)
         return loss, restored, gt
 
@@ -142,7 +155,9 @@ class RestorationLitModule(LightningModule):
         "Lightning hook that is called when a training epoch ends."
         pass
 
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    def validation_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> None:
         """Perform a single validation step on a batch of data from the validation set.
 
         :param batch: A batch of data (a tuple) containing the input tensor of images and target
@@ -159,13 +174,17 @@ class RestorationLitModule(LightningModule):
 
     def on_validation_epoch_end(self) -> None:
         "Lightning hook that is called when a validation epoch ends."
-        psnr= self.val_psnr.compute()  # get current val psnr
+        psnr = self.val_psnr.compute()  # get current val psnr
         self.val_psnr_best(psnr)  # update best so far val psnr
         # log `val_psnr_best` as a value through `.compute()` method, instead of as a metric object
         # otherwise metric would be reset by lightning after each epoch
-        self.log("val/psnr_best", self.val_psnr_best.compute(), sync_dist=True, prog_bar=True)
+        self.log(
+            "val/psnr_best", self.val_psnr_best.compute(), sync_dist=True, prog_bar=True
+        )
 
-    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    def test_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> None:
         """Perform a single test step on a batch of data from the test set.
 
         :param batch: A batch of data (a tuple) containing the input tensor of images and target
@@ -206,7 +225,9 @@ class RestorationLitModule(LightningModule):
         """
         optimizer = self.hparams.optimizer(params=self.trainer.model.parameters())
         if self.hparams.scheduler is not None:
-            scheduler = self.hparams.scheduler(optimizer=optimizer)  # with this we can do some fancy lr scheduling
+            scheduler = self.hparams.scheduler(
+                optimizer=optimizer
+            )  # with this we can do some fancy lr scheduling
             return {
                 "optimizer": optimizer,
                 "lr_scheduler": {

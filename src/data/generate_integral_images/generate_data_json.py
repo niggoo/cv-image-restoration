@@ -85,7 +85,6 @@ def fix_data(files: dict) -> Tuple[dict, List]:
 
 
 if __name__ == "__main__":
-
     data_path = "../../data/download"
     data_files = get_all_files(data_path)
     files = dict_from_data_paths(data_files)

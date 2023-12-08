@@ -7,7 +7,13 @@ import math
 from typing import List
 
 # from LFR_utils import read_poses_and_images, pose_to_virtualcamera, init_aos, init_window
-from LFR.python.LFR_utils import read_poses_and_images, pose_to_virtualcamera, init_aos, init_window
+from LFR.python.LFR_utils import (
+    read_poses_and_images,
+    pose_to_virtualcamera,
+    init_aos,
+    init_window,
+)
+
 # import LFR_utils as utils
 import LFR.python.LFR_utils as utils
 import LFR.python.pyaos as pyaos
@@ -19,6 +25,7 @@ import glm
 #############################Create Poses for Initial Positions###############################################################
 
 # Below are certain functions required to convert the poses to a certain format to be compatabile with the AOS Renderer.
+
 
 def eul2rotm(theta):
     s_1 = math.sin(theta[0])
@@ -46,7 +53,7 @@ def eul2rotm(theta):
 def createviewmateuler(eulerang, camLocation):
     rotationmat = eul2rotm(eulerang)
     translVec = np.reshape((-camLocation @ rotationmat), (3, 1))
-    conjoinedmat = (np.append(np.transpose(rotationmat), translVec, axis=1))
+    conjoinedmat = np.append(np.transpose(rotationmat), translVec, axis=1)
     return conjoinedmat
 
 
@@ -76,44 +83,65 @@ def create_integral_image(image_paths: List[str], focal_plane: float) -> np.ndar
     :param focal_plane: Focal plane.
     :return: Integral image
     """
-    w, h, fovDegrees = 512, 512, 50  # # resolution and field of view. This should not be changed.
+    w, h, fovDegrees = (
+        512,
+        512,
+        50,
+    )  # # resolution and field of view. This should not be changed.
     render_fov = 50
 
-    if 'window' not in locals():
-        window = pyaos.PyGlfwWindow(w, h, 'AOS')
+    if "window" not in locals():
+        window = pyaos.PyGlfwWindow(w, h, "AOS")
 
     aos = pyaos.PyAOS(w, h, fovDegrees)
 
-    set_folder = r'LFR\python'  # Enter path to your LFR/python directory
-    aos.loadDEM(os.path.join(set_folder, 'zero_plane.obj'))
+    set_folder = r"LFR\python"  # Enter path to your LFR/python directory
+    aos.loadDEM(os.path.join(set_folder, "zero_plane.obj"))
     # This is based on how renderer is implemented.
 
     Numberofimages = 11  # Or just the number of images
     Focal_plane = focal_plane
 
     # These are the x and y positions of the images. It is of the form [[x_positions],[y_positions]]
-    ref_loc = [[5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+    ref_loc = [
+        [5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ]
 
-    altitude_list = [35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35]  # [Z values which is the height]
+    altitude_list = [
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+    ]  # [Z values which is the height]
 
     center_index = 5
 
     site_poses = []
     for i in range(Numberofimages):
-        EastCentered = (ref_loc[0][i] - 0.0)  # Get MeanEast and Set MeanEast
-        NorthCentered = (0.0 - ref_loc[1][i])  # Get MeanNorth and Set MeanNorth
-        M = createviewmateuler(np.array([0.0, 0.0, 0.0]), np.array([ref_loc[0][i], ref_loc[1][i], - altitude_list[i]]))
+        EastCentered = ref_loc[0][i] - 0.0  # Get MeanEast and Set MeanEast
+        NorthCentered = 0.0 - ref_loc[1][i]  # Get MeanNorth and Set MeanNorth
+        M = createviewmateuler(
+            np.array([0.0, 0.0, 0.0]),
+            np.array([ref_loc[0][i], ref_loc[1][i], -altitude_list[i]]),
+        )
         # print('m', M)
         ViewMatrix = np.vstack((M, np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)))
         # print(ViewMatrix)
         camerapose = np.asarray(ViewMatrix.transpose(), dtype=np.float32)
         # print(camerapose)
-        site_poses.append(
-            camerapose)
+        site_poses.append(camerapose)
 
     import re
 
-    numbers = re.compile(r'(\d+)')
+    numbers = re.compile(r"(\d+)")
 
     def numericalSort(value):
         parts = numbers.split(value)
@@ -128,11 +156,14 @@ def create_integral_image(image_paths: List[str], focal_plane: float) -> np.ndar
 
     aos.clearViews()  # Every time you call the renderer you should use this line to clear the previous views
     for i in range(len(imagelist)):
-        aos.addView(imagelist[i], site_poses[i],
-                    "DEM BlobTrack")  # Here we are adding images to the renderer one by one.
+        aos.addView(
+            imagelist[i], site_poses[i], "DEM BlobTrack"
+        )  # Here we are adding images to the renderer one by one.
     aos.setDEMTransform([0, 0, Focal_plane])
 
-    proj_RGBimg = aos.render(pose_to_virtualcamera(site_poses[center_index]), render_fov)
+    proj_RGBimg = aos.render(
+        pose_to_virtualcamera(site_poses[center_index]), render_fov
+    )
     tmp_RGB = divide_by_alpha(proj_RGBimg)
     # cv2.imwrite(os.path.join(Integral_Path, 'integral.png'),
     #             tmp_RGB)  # Final result. Check the integral result in the integrals folder.
@@ -140,14 +171,17 @@ def create_integral_image(image_paths: List[str], focal_plane: float) -> np.ndar
     return tmp_RGB
 
 
-if __name__ == '__main__':
-    print('AOS Integrator')
+if __name__ == "__main__":
+    print("AOS Integrator")
     ## path to where the results will be stored
 
-    Download_Location = r'test'  ## Enter path to the directory where you want to save the results.
+    Download_Location = (
+        r"test"  ## Enter path to the directory where you want to save the results.
+    )
     print(Download_Location)
-    Integral_Path = os.path.join(Download_Location,
-                                 'integrals')  # Note that your results will be saved to this integrals folder.
+    Integral_Path = os.path.join(
+        Download_Location, "integrals"
+    )  # Note that your results will be saved to this integrals folder.
 
     # Check if the directory already exists
     if not os.path.exists(Integral_Path):
@@ -156,16 +190,20 @@ if __name__ == '__main__':
         print(f"The directory '{Integral_Path}' already exists.")
 
     #############################Start the AOS Renderer###############################################################
-    w, h, fovDegrees = 512, 512, 50  # # resolution and field of view. This should not be changed.
+    w, h, fovDegrees = (
+        512,
+        512,
+        50,
+    )  # # resolution and field of view. This should not be changed.
     render_fov = 50
 
-    if 'window' not in locals() or window == None:
-        window = pyaos.PyGlfwWindow(w, h, 'AOS')
+    if "window" not in locals() or window == None:
+        window = pyaos.PyGlfwWindow(w, h, "AOS")
 
     aos = pyaos.PyAOS(w, h, fovDegrees)
 
-    set_folder = r'LFR\python'  # Enter path to your LFR/python directory
-    aos.loadDEM(os.path.join(set_folder, 'zero_plane.obj'))
+    set_folder = r"LFR\python"  # Enter path to your LFR/python directory
+    aos.loadDEM(os.path.join(set_folder, "zero_plane.obj"))
 
     ########################## Below we generate the poses for rendering #####################################
     # This is based on how renderer is implemented.
@@ -176,56 +214,78 @@ if __name__ == '__main__':
     # ref_loc is the reference location or the poses of the images. The poses are the same for the dataset and therefore only the images have to be replaced.
 
     # These are the x and y positions of the images. It is of the form [[x_positions],[y_positions]]
-    ref_loc = [[5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+    ref_loc = [
+        [5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ]
 
-    altitude_list = [35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35]  # [Z values which is the height]
+    altitude_list = [
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+        35,
+    ]  # [Z values which is the height]
 
     # this is important, this will be the pose index at which the integration should happen. For example if you have 5 images, lets say you want to integrate all 5 images to the second image position. Then your center_index is 1 as index starts from zero.
     center_index = 5
 
     site_poses = []
     for i in range(Numberofimages):
-        EastCentered = (ref_loc[0][i] - 0.0)  # Get MeanEast and Set MeanEast
-        NorthCentered = (0.0 - ref_loc[1][i])  # Get MeanNorth and Set MeanNorth
-        M = createviewmateuler(np.array([0.0, 0.0, 0.0]), np.array([ref_loc[0][i], ref_loc[1][i], - altitude_list[i]]))
-        print('m', M)
+        EastCentered = ref_loc[0][i] - 0.0  # Get MeanEast and Set MeanEast
+        NorthCentered = 0.0 - ref_loc[1][i]  # Get MeanNorth and Set MeanNorth
+        M = createviewmateuler(
+            np.array([0.0, 0.0, 0.0]),
+            np.array([ref_loc[0][i], ref_loc[1][i], -altitude_list[i]]),
+        )
+        print("m", M)
         ViewMatrix = np.vstack((M, np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)))
         print(ViewMatrix)
         camerapose = np.asarray(ViewMatrix.transpose(), dtype=np.float32)
         print(camerapose)
         site_poses.append(
-            camerapose)  # site_poses is a list now containing all the poses of all the images in a certain format that is accecpted by the renderer.
+            camerapose
+        )  # site_poses is a list now containing all the poses of all the images in a certain format that is accecpted by the renderer.
 
     #############################Read the generated images from the simulator and store in a list ###############################################################
 
     import re
 
-    numbers = re.compile(r'(\d+)')
-
+    numbers = re.compile(r"(\d+)")
 
     def numericalSort(value):
         parts = numbers.split(value)
         parts[1::2] = map(int, parts[1::2])
         return parts
 
-
     imagelist = []
 
     import glob
 
-    for img in sorted(glob.glob(r"test/test_input_images" + '/*.png'),
-                      key=numericalSort):  # Enter path to the images directory which should contain 11 images.
+    for img in sorted(
+        glob.glob(r"test/test_input_images" + "/*.png"), key=numericalSort
+    ):  # Enter path to the images directory which should contain 11 images.
         print(img)
         n = cv2.imread(img)
         imagelist.append(n)
 
     aos.clearViews()  # Every time you call the renderer you should use this line to clear the previous views
     for i in range(len(imagelist)):
-        aos.addView(imagelist[i], site_poses[i],
-                    "DEM BlobTrack")  # Here we are adding images to the renderer one by one.
+        aos.addView(
+            imagelist[i], site_poses[i], "DEM BlobTrack"
+        )  # Here we are adding images to the renderer one by one.
     aos.setDEMTransform([0, 0, Focal_plane])
 
-    proj_RGBimg = aos.render(pose_to_virtualcamera(site_poses[center_index]), render_fov)
+    proj_RGBimg = aos.render(
+        pose_to_virtualcamera(site_poses[center_index]), render_fov
+    )
     tmp_RGB = divide_by_alpha(proj_RGBimg)
-    cv2.imwrite(os.path.join(Integral_Path, 'integral.png'),
-                tmp_RGB)  # Final result. Check the integral result in the integrals folder.
+    cv2.imwrite(
+        os.path.join(Integral_Path, "integral.png"), tmp_RGB
+    )  # Final result. Check the integral result in the integrals folder.

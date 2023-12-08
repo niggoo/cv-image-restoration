@@ -15,17 +15,18 @@ except ModuleNotFoundError:
 
 def generate_integrals(args):
     filename, focal_plane, images = args
-    os.system(f"python generate_integrals.py {filename} {focal_plane} {' '.join(images)}")
+    os.system(
+        f"python generate_integrals.py {filename} {focal_plane} {' '.join(images)}"
+    )
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     # create integral images folder
     integral_images_path = "../../data/integral_images"
     os.makedirs(integral_images_path, exist_ok=True)
 
     # load the json file
-    with open('data.json') as json_file:
+    with open("data.json") as json_file:
         data = json.load(json_file)
 
     # create a list of focal planes
@@ -38,7 +39,9 @@ if __name__ == '__main__':
         for image_id in data[batch]:
             for focal_plane in focal_planes:
                 images = data[batch][image_id]["raw_images"]
-                batch_folder = Path(batch).parts[-2:]  # e.g. batch_20230912_part1-006\\Part1
+                batch_folder = Path(batch).parts[
+                    -2:
+                ]  # e.g. batch_20230912_part1-006\\Part1
                 p = os.path.join(integral_images_path, *batch_folder, image_id)
                 filename = f"{p}/{image_id}_integral_fp{focal_plane}.png"
                 # create folders after batch name and id
@@ -54,7 +57,9 @@ if __name__ == '__main__':
     pool = multiprocessing.Pool(processes=50)
     try:
         # apply generate_integrals to each set of arguments
-        for _ in tqdm(pool.imap_unordered(generate_integrals, args_list), total=len(args_list)):
+        for _ in tqdm(
+            pool.imap_unordered(generate_integrals, args_list), total=len(args_list)
+        ):
             pass
     except KeyboardInterrupt:
         print("Caught KeyboardInterrupt, terminating workers")
@@ -68,4 +73,4 @@ if __name__ == '__main__':
     end_time = time.time()
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end_time)))
     elapsed_time = end_time - start_time
-    print(f'Time taken: {elapsed_time:.2f} seconds or {elapsed_time / 60:.2f} minutes')
+    print(f"Time taken: {elapsed_time:.2f} seconds or {elapsed_time / 60:.2f} minutes")

@@ -8,12 +8,17 @@ import random
 import torchvision
 from torch.utils.data import Dataset, random_split
 from torchvision.io import ImageReadMode
+from transformers import AutoImageProcessor
 
 
-class EmbeddingDataSet(Dataset):
-    def __init__(self, data_paths: dict):
+class RegularDataSet(Dataset):
+    def __init__(
+        self, data_paths: dict, model_name: str = "facebook/dpt-dinov2-small-nyu"
+    ):
         super().__init__()
         self.data_paths = data_paths
+        self.processor = AutoImageProcessor.from_pretrained(model_name)
+        # self.processor.crop_size = {"height": 512, "width": 512}
 
     def __len__(self):
         return len(self.data_paths)
@@ -39,19 +44,23 @@ class EmbeddingDataSet(Dataset):
         gt = torchvision.io.read_image(sample["GT"], ImageReadMode.GRAY).float()
         gt = gt.permute(1, 2, 0)  # HWC
         # load embeddings
-        embeddings = torch.stack(
+        integral_images = torch.stack(
             [
-                load_file(file)["last_hidden_states"]
-                for file in sample["embeddings"][:4]
+                self.processor(
+                    torchvision.io.read_image(file, ImageReadMode.GRAY)
+                    .float()
+                    .repeat(3, 1, 1),
+                    return_tensors="pt",
+                )["pixel_values"]
+                for file in sample["integral_images"][:4]
             ],
             dim=1,
-        ).squeeze(0)
-        embeddings = embeddings[:, 1:, :].float()  # remove CLS token
+        ).transpose(0, 1)
+        # check for nan values
+        return integral_images, gt / 255.0  # "normalize" to [0, 1]
 
-        return embeddings, gt / 255.0  # "normalize" to [0, 1]
 
-
-class EmbeddingDataModule(ImageDataModule):
+class RegularDataModule(ImageDataModule):
     """
     only override the setup method
     """
@@ -78,11 +87,11 @@ class EmbeddingDataModule(ImageDataModule):
         train_size = int(total_items * self.hparams.data_split[0])
         val_size = int(total_items * self.hparams.data_split[1])
 
-        self.data_train: Optional[Dataset] = EmbeddingDataSet(data_paths[:train_size])
-        self.data_val: Optional[Dataset] = EmbeddingDataSet(
+        self.data_train: Optional[Dataset] = RegularDataSet(data_paths[:train_size])
+        self.data_val: Optional[Dataset] = RegularDataSet(
             data_paths[train_size : train_size + val_size]
         )
-        self.data_test: Optional[Dataset] = EmbeddingDataSet(
+        self.data_test: Optional[Dataset] = RegularDataSet(
             data_paths[train_size + val_size :]
         )
 
@@ -99,16 +108,31 @@ class EmbeddingDataModule(ImageDataModule):
 
         # load and split datasets only if not loaded already
         if not self.data_train and not self.data_val and not self.data_test:
-            dataset = EmbeddingDataSet(self.hparams.data_dir)
+            dataset = RegularDataSet(self.hparams.data_dir)
             self.data_train, self.data_val, self.data_test = random_split(
                 dataset, self.hparams.data_split
             )
 
 
 if __name__ == "__main__":
-    a = EmbeddingDataModule(data_paths_json_path="data_paths.json")
+    a = RegularDataModule(data_paths_json_path="data_paths.json")
     a.setup()
     emb, gt, raw, params = a.data_test.get_all(0)
+    raw = raw.permute(2, 0, 1)
+    # save the raw image
+    torchvision.utils.save_image(raw.unsqueeze(0).float(), "raw.png")
+    # save the first emb image
+    first_emb = emb[1]
+    first_emb = (first_emb - first_emb.min()) / (first_emb.max() - first_emb.min())
+    torchvision.utils.save_image(first_emb.float(), "emb.png")
+    interp_emb = torch.nn.functional.interpolate(
+        first_emb, scale_factor=4, mode="nearest"
+    )
+    interp_emb = interp_emb.squeeze(0)
+    torchvision.utils.save_image(interp_emb.float(), "emb_interp.png")
+    gt = gt.permute(2, 0, 1)
+    # save the gt image
+    torchvision.utils.save_image(gt.unsqueeze(0).float(), "gt.png")
     print(emb.shape)
     print(gt.shape)
     print(raw.shape)

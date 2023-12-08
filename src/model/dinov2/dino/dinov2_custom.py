@@ -33,13 +33,19 @@ class Dinov2ForRestoration(Dinov2PreTrainedModel):
         self.dinov2 = Dinov2Model(config)
         self.classifier = LinearClassifier(self.in_channels, 36, 36, self.out_channels)
 
-        self.combine = torch.nn.Conv2d(in_channels=self.out_channels + 3, out_channels=1, kernel_size=1)
+        self.combine = torch.nn.Conv2d(
+            in_channels=self.out_channels + 3, out_channels=1, kernel_size=1
+        )
 
-    def forward(self, pixel_values, output_hidden_states=False, output_attentions=False):
+    def forward(
+        self, pixel_values, output_hidden_states=False, output_attentions=False
+    ):
         # use frozen features
-        outputs = self.dinov2(pixel_values,
-                              output_hidden_states=output_hidden_states,
-                              output_attentions=output_attentions)
+        outputs = self.dinov2(
+            pixel_values,
+            output_hidden_states=output_hidden_states,
+            output_attentions=output_attentions,
+        )
         # dinov2 divides image into 14 patches
         # input of 3x512x512 images --> 512//14 = 36, square patches --> 36x36 = 1296
         # hidden size = 768
@@ -50,8 +56,9 @@ class Dinov2ForRestoration(Dinov2PreTrainedModel):
 
         # convert to logits and upsample to the size of the pixel values
         logits = self.classifier(patch_embeddings)
-        logits = torch.nn.functional.interpolate(logits, size=pixel_values.shape[2:], mode="bilinear",
-                                                 align_corners=False)
+        logits = torch.nn.functional.interpolate(
+            logits, size=pixel_values.shape[2:], mode="bilinear", align_corners=False
+        )
         # combine with original image
         combined = self.combine(torch.cat((logits, pixel_values), dim=1))
         res = torch.sigmoid(combined)
@@ -61,7 +68,7 @@ class Dinov2ForRestoration(Dinov2PreTrainedModel):
 if __name__ == "__main__":
     model = Dinov2ForRestoration.from_pretrained("facebook/dinov2-base")
     model.eval()
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     print(f"Using {device}")
     # create a random input

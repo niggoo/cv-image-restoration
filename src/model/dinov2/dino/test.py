@@ -6,6 +6,7 @@ from src.data.dataset_cvproj import CVProjDataset
 
 def plot_images(integral_image, predict, target):
     import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots(1, 3)
     ax[0].imshow(integral_image)
     ax[0].set_title("Integral Image")
@@ -19,7 +20,7 @@ def plot_images(integral_image, predict, target):
 
 
 if __name__ == "__main__":
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # load the model
     model = Dinov2ForRestoration.from_pretrained("facebook/dinov2-base")
@@ -52,5 +53,7 @@ if __name__ == "__main__":
 
     # integral image has more than one channel, so take mean across channels
     x_plot = x.squeeze().cpu().detach().numpy().mean(axis=0)
-    plot_images(x_plot, out.squeeze().cpu().detach().numpy(), y.squeeze().detach().numpy())
+    plot_images(
+        x_plot, out.squeeze().cpu().detach().numpy(), y.squeeze().detach().numpy()
+    )
     print(out)

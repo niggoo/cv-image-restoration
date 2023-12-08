@@ -24,14 +24,23 @@ class ImageDataSet(Dataset):
         # load the GT image
         gt = torchvision.io.read_image(sample["GT"], ImageReadMode.GRAY).float()
         # load integral images and stack along the channel dimension
-        integral_images = torch.stack([torchvision.io.read_image(image, ImageReadMode.GRAY)
-                                       for image in sample["integral_images"][:4]], dim=0).squeeze().float()
+        integral_images = (
+            torch.stack(
+                [
+                    torchvision.io.read_image(image, ImageReadMode.GRAY)
+                    for image in sample["integral_images"][:4]
+                ],
+                dim=0,
+            )
+            .squeeze()
+            .float()
+        )
 
         return integral_images / 255.0, gt / 255.0  # "normalize" to [0, 1]
 
 
 class ImageDataModule(LightningDataModule):
-    """ A `LightningDataModule` implements 7 key methods:
+    """A `LightningDataModule` implements 7 key methods:
 
     ```python
         def prepare_data(self):
@@ -63,12 +72,12 @@ class ImageDataModule(LightningDataModule):
     """
 
     def __init__(
-            self,
-            data_paths_json_path: str = "../data/data_paths.json",
-            data_split: Tuple[float, float, float] = (0.80, 0.1, 0.1),
-            batch_size: int = 8,
-            num_workers: int = 0,
-            pin_memory: bool = False,
+        self,
+        data_paths_json_path: str = "../data/data_paths.json",
+        data_split: Tuple[float, float, float] = (0.80, 0.1, 0.1),
+        batch_size: int = 8,
+        num_workers: int = 0,
+        pin_memory: bool = False,
     ) -> None:
         """Initialize a DataModule.
 
@@ -82,7 +91,9 @@ class ImageDataModule(LightningDataModule):
 
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
-        self.save_hyperparameters(logger=False)  # True --> we additionally log the hyperparameter
+        self.save_hyperparameters(
+            logger=False
+        )  # True --> we additionally log the hyperparameter
 
         self.data_paths_json_path = data_paths_json_path
 
@@ -125,8 +136,12 @@ class ImageDataModule(LightningDataModule):
         val_size = int(total_items * self.hparams.data_split[1])
 
         self.data_train: Optional[Dataset] = ImageDataSet(data_paths[:train_size])
-        self.data_val: Optional[Dataset] = ImageDataSet(data_paths[train_size:train_size + val_size])
-        self.data_test: Optional[Dataset] = ImageDataSet(data_paths[train_size + val_size:])
+        self.data_val: Optional[Dataset] = ImageDataSet(
+            data_paths[train_size : train_size + val_size]
+        )
+        self.data_test: Optional[Dataset] = ImageDataSet(
+            data_paths[train_size + val_size :]
+        )
 
         # Divide batch size by the number of devices.
         # Only useful for multiple GPUs, let it be or remove it
@@ -135,7 +150,9 @@ class ImageDataModule(LightningDataModule):
                 raise RuntimeError(
                     f"Batch size ({self.hparams.batch_size}) is not divisible by the number of devices ({self.trainer.world_size})."
                 )
-            self.batch_size_per_device = self.hparams.batch_size // self.trainer.world_size
+            self.batch_size_per_device = (
+                self.hparams.batch_size // self.trainer.world_size
+            )
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
