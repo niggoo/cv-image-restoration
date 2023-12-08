@@ -68,8 +68,8 @@ class EmbeddingDataModule(ImageDataModule):
         random.shuffle(data_paths)
 
         total_items = len(data_paths)
-        train_size = int(total_items * self.data_split[0])
-        val_size = int(total_items * self.data_split[1])
+        train_size = int(total_items * self.hparams.data_split[0])
+        val_size = int(total_items * self.hparams.data_split[1])
 
         self.data_train: Optional[Dataset] = EmbeddingDataSet(data_paths[:train_size])
         self.data_val: Optional[Dataset] = EmbeddingDataSet(data_paths[train_size:train_size + val_size])

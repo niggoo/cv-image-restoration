@@ -2,6 +2,7 @@ import torch
 import json
 from lightning.pytorch import seed_everything
 from src.model.restoration_module import RestorationLitModule
+from pathlib import Path
 
 # Here is the place to import your stuff
 from src.data.emb_datamodule import EmbeddingDataModule as DataModule
@@ -20,10 +21,10 @@ def plot_images(raw, pred, gt):
     raw = raw.numpy().astype(int)
     gt = gt.numpy().astype(int)
     pred = pred.numpy().astype(int)
-    cmap = "gray" # "viridis"
+    cmap = "gray"
     fig, axs = plt.subplots(1, 3)
     axs[0].imshow(raw, cmap=cmap)
-    axs[0].set_title("Raw")
+    axs[0].set_title("Input")
     axs[1].imshow(pred, cmap=cmap)
     axs[1].set_title("Prediction")
     axs[2].imshow(gt, cmap=cmap)
@@ -63,7 +64,10 @@ def main():
         pred = pred.squeeze(0).detach()
         # plot
         fig = plot_images(raw=raw, pred=pred, gt=gt)
-        # fig.savefig(f"test_plot_{idx}.png")
+        # create folder in checkpoint path to save the images
+        Path(checkpoint_path).parent.joinpath("images").mkdir(exist_ok=True)
+        # save
+        fig.savefig(Path(checkpoint_path).parent.joinpath("images").joinpath(f"image_{idx}_test.png"))
         fig.show()
 
 
