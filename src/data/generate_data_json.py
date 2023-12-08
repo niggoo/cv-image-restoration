@@ -70,19 +70,24 @@ def generate_data_paths_dict(raw_folder, integral_folder, embedding_folder, foca
     for batch in data_paths:
         for image_id in data_paths[batch]:
             errors = []
-            if len(data_paths[batch][image_id]["raw_images"]) != 11:
-                errors.append("raw images not 11")
-            if "GT" not in data_paths[batch][image_id]:
-                errors.append("GT not found")
-            if "parameters" not in data_paths[batch][image_id]:
-                errors.append("parameters not found")
-            n_integral_images = len(data_paths[batch][image_id]["integral_images"])
-            if n_integral_images != len(focal_planes):
-                errors.append(f"integral images are {n_integral_images} not {len(focal_planes)}")
-            n_embeddings = len(data_paths[batch][image_id]["embeddings"])
-            if n_embeddings != len(focal_planes):
-                errors.append(f"embeddings are {n_integral_images} not {len(focal_planes)}")
-
+            # check if all the keys are there (raw images, GT, parameters, integral images)
+            # are here and only continue if there are 5 keys
+            keys = data_paths[batch][image_id].keys()
+            if len(keys) == 5:
+                if len(data_paths[batch][image_id]["raw_images"]) != 11:
+                    errors.append("raw images not 11")
+                if "GT" not in data_paths[batch][image_id]:
+                    errors.append("GT not found")
+                if "parameters" not in data_paths[batch][image_id]:
+                    errors.append("parameters not found")
+                n_integral_images = len(data_paths[batch][image_id]["integral_images"])
+                if n_integral_images < len(focal_planes):
+                    errors.append(f"integral images are {n_integral_images} not {len(focal_planes)}")
+                n_embeddings = len(data_paths[batch][image_id]["embeddings"])
+                if n_embeddings < len(focal_planes):
+                    errors.append(f"embeddings are {n_integral_images} not {len(focal_planes)}")
+            else:
+                errors.append(f"sample is missing something, keys are {keys}")
 
             if len(errors) > 0:
                 print(batch, image_id, errors)
@@ -98,9 +103,11 @@ def generate_data_paths_dict(raw_folder, integral_folder, embedding_folder, foca
 
 
 if __name__ == "__main__":
-    raw_folder = "/home/nico/Projects/cv-image-restoration/downloaded/original_dataset"
-    integral_folder = "/home/nico/Projects/cv-image-restoration/downloaded/paul"
-    embedding_folder = "/home/nico/Projects/cv-image-restoration/downloaded/dino_embeddings"
+
+    p = r"C:\Users\pauld\OneDrive - Johannes Kepler Universität Linz\Master\Semester1\Computer Vision\project\data"
+    raw_folder = p + r"\download"
+    integral_folder = p + r"\integral_images"
+    embedding_folder = r"D:\Computer_Vision\small"
 
     data_paths = generate_data_paths_dict(raw_folder, integral_folder, embedding_folder)
 

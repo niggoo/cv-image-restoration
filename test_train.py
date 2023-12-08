@@ -11,8 +11,8 @@ from argparse import ArgumentParser
 
 from src.model.restoration_module import RestorationLitModule
 # Here is the place to import your stuff
-from src.data.emb_datamodule import DinoEmbeddingDataModule as DataModule
-from src.model.unet.unet import UNet as Model
+from src.data.emb_datamodule import EmbeddingDataModule as DataModule
+from src.model.dinov2.simple_decoder import SimpleDecoder as Model
 
 
 def opts_parser():
@@ -60,7 +60,7 @@ def main():
     # training dataset loading
     datamodule = DataModule(data_paths_json_path="src/data/data_paths.json")
     # create pytorch lightening module
-    net = Model(4)  # here is the place to init the model(s)
+    net = Model()  # here is the place to init the model(s)
     pl_module = RestorationLitModule(optimizer=AdamW, scheduler=ReduceLROnPlateau, compile=False, encoder=net)
     # create monitor to keep track of learning rate - we want to check the behaviour of our learning rate schedule
     lr_monitor = LearningRateMonitor(logging_interval='epoch')

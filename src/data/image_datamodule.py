@@ -25,7 +25,7 @@ class ImageDataSet(Dataset):
         gt = torchvision.io.read_image(sample["GT"], ImageReadMode.GRAY).float()
         # load integral images and stack along the channel dimension
         integral_images = torch.stack([torchvision.io.read_image(image, ImageReadMode.GRAY)
-                                       for image in sample["integral_images"]], dim=0).squeeze().float()
+                                       for image in sample["integral_images"][:4]], dim=0).squeeze().float()
 
         return integral_images / 255.0, gt / 255.0  # "normalize" to [0, 1]
 
