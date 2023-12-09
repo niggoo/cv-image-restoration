@@ -19,10 +19,8 @@ from src.model.dinov2.conv_decoder import ModifiedConvHead as Model
 
 # TODO: we should not do this here :D
 from lightning.pytorch.callbacks import Callback
-import wandb
 import matplotlib.pyplot as plt
 from test_plot import plot_images
-from PIL import Image
 
 
 class ImageLoggingCallback(Callback):
@@ -30,6 +28,11 @@ class ImageLoggingCallback(Callback):
         self.datamodule = datamodule
         self.num_samples = num_samples
         self.wandb_logger = wandb_logger
+        # save fig to wandb_logger.save_dir
+        self.folder_path = os.path.join(self.wandb_logger._project, self.wandb_logger.version)
+        # create dir
+        if not os.path.exists(self.folder_path):
+            os.makedirs(self.folder_path)
 
     def on_train_epoch_end(self, trainer, pl_module):
         pl_module.eval()
@@ -43,21 +46,19 @@ class ImageLoggingCallback(Callback):
                 pred = pred.squeeze(0).detach()
 
                 fig = plot_images(raw=raw, pred=pred, gt=gt)
-
-                # save fig to wandb_logger.save_dir
-                folder_path = os.path.join(self.wandb_logger._project, self.wandb_logger.version)
-                # create dir
-                if not os.path.exists(folder_path):
-                    os.makedirs(folder_path)
                 # add filename
-                fig_path = os.path.join(folder_path, f"val_image_{idx}.png")
+                fig_path = os.path.join(self.folder_path, f"val_image_{idx}.png")
                 # save fig
                 fig.savefig(fig_path)
+                
 
                 # Log the image to wandb
-                self.wandb_logger.log_image(
-                    key=f"val_image_{idx}", images=[fig_path]
-                )
+                try:
+                    self.wandb_logger.log_image(
+                        key=f"val_image_{idx}", images=[fig_path]
+                    )
+                except Exception as e:
+                    print(e)
                 plt.close(fig)
 
         pl_module.train()
