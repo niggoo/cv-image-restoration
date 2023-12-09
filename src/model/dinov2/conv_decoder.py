@@ -23,15 +23,15 @@ class ModifiedConvHead(nn.Module):
         # Final convolution that combines the outputs
         self.final_conv = nn.Sequential(
             nn.Conv2d(32, 64, (1, 1), stride=1),
-            nn.BatchNorm2d(64),
+            # nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.Upsample(scale_factor=2),
             nn.Conv2d(64, 64, (3, 3), padding=(1, 1)),
-            nn.BatchNorm2d(64),
+            # nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.Upsample(scale_factor=2),
             nn.Conv2d(64, 32, (3, 3), padding=(1, 1)),
-            nn.BatchNorm2d(32),
+            # nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.Upsample(scale_factor=2),
             nn.Conv2d(32, num_labels, (3, 3), padding=(1, 1)),
