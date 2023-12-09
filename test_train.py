@@ -8,6 +8,7 @@ from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch import Trainer, seed_everything
 from torchinfo import summary
 
+import os
 from argparse import ArgumentParser
 
 from src.model.restoration_module import RestorationLitModule
@@ -21,32 +22,42 @@ from lightning.pytorch.callbacks import Callback
 import wandb
 import matplotlib.pyplot as plt
 from test_plot import plot_images
+from PIL import Image
 
 
 class ImageLoggingCallback(Callback):
-    def __init__(self, datamodule, num_samples=5, device="cuda", wandb_logger=None):
+    def __init__(self, datamodule, num_samples=5, wandb_logger=None):
         self.datamodule = datamodule
         self.num_samples = num_samples
-        self.device = device
         self.wandb_logger = wandb_logger
 
     def on_train_epoch_end(self, trainer, pl_module):
         pl_module.eval()
         with torch.no_grad():
             for idx in range(self.num_samples):
-                embeddings, gt, raw, _ = self.datamodule.data_test.get_all(idx)
+                embeddings, gt, raw, _ = self.datamodule.data_val.get_all(idx)
                 # print pl module device
-                print(pl_module.device)
-                embeddings = embeddings.to("cpu")
-                # pl module to cpu, for now
-                pl_module.to("cpu")
+                embeddings = embeddings.to(pl_module.device)
+                # add batch dimension
                 pred = pl_module(embeddings.unsqueeze(0))
                 pred = pred.squeeze(0).detach()
 
                 fig = plot_images(raw=raw, pred=pred, gt=gt)
 
-                # Log the plot to wandb
-                self.wandb_logger.log_image(images=fig, key=f"test_sample_{idx}")
+                # save fig to wandb_logger.save_dir
+                folder_path = os.path.join(self.wandb_logger._project, self.wandb_logger.version)
+                # create dir
+                if not os.path.exists(folder_path):
+                    os.makedirs(folder_path)
+                # add filename
+                fig_path = os.path.join(folder_path, f"val_image_{idx}.png")
+                # save fig
+                fig.savefig(fig_path)
+
+                # Log the image to wandb
+                self.wandb_logger.log_image(
+                    key=f"val_image_{idx}", images=[fig_path]
+                )
                 plt.close(fig)
 
         pl_module.train()
@@ -111,7 +122,7 @@ def main():
     )
 
     image_logging_callback = ImageLoggingCallback(
-        datamodule, num_samples=20, device=device, wandb_logger=wandb_logger
+        datamodule, num_samples=20, wandb_logger=wandb_logger
     )
     # create the pytorch lightening trainer by specifying the number of epochs to train, the logger,
     # on which kind of device(s) to train and possible callbacks as well as set up for Mixed Precision
