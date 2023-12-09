@@ -184,10 +184,10 @@ if __name__ == "__main__":
                 "embeddings": data_paths[batch][image_id]["embeddings"],
             }
             data_paths_list.append(sample)
-            if idx > 1000:
-                break
-        if b_idx > 0:
-            break
+            # if idx > 1000:
+            #     break
+        # if b_idx > 0:
+        #     break
     print(len(data_paths_list))
 
     # save data_paths_list as json

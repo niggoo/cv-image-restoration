@@ -23,11 +23,12 @@ class DPTForReconstruction(torch.nn.Module):
         super(DPTForReconstruction, self).__init__()
         self.model = DPTForDepthEstimation.from_pretrained(model_name)
         self.model.config.neck_hidden_states = [64, 128, 256, 512]
+        self.model.config.add_projection = True
 
         # freeze encoder weights
-        for n, p in self.model.named_parameters():
-            if "encoder" in n:
-                p.requires_grad = False
+        # for n, p in self.model.named_parameters():
+        #     if "encoder" in n:
+        #         p.requires_grad = False
 
         self.model.neck = DPTNeck(self.model.config)
         self.model.head = DPTDepthEstimationHead(self.model.config)
@@ -36,18 +37,19 @@ class DPTForReconstruction(torch.nn.Module):
     def forward(self, x):
         x = rearrange(x, "b f 1 c h w -> (b f) c h w")
         # scale down images to half size
-        x = torch.nn.functional.interpolate(x, scale_factor=0.25, mode="bicubic")
+        x = torch.nn.functional.interpolate(x, scale_factor=0.5, mode="bicubic")
         x = self.model(x).predicted_depth
         # take max over the focal planes
         # x = x.max(dim=1)[0]
         x = rearrange(x, "(b f) h w -> b f h w", f=4)
+        # this computes a weighted mean over the focal planes
         x = self.conv1d(x)
         # scale up to original size for (h, w) in (b, h, w)
         # 1 dimension is needed for the interpolation to work
         # x = rearrange(x, "b h w -> b 1 h w")
         x = torch.nn.functional.interpolate(x, size=(512, 512), mode="bicubic")
         x = rearrange(x, "b 1 h w -> b h w 1")
-        return torch.sigmoid(x)
+        return x
 
 
 if __name__ == "__main__":
@@ -56,7 +58,7 @@ if __name__ == "__main__":
     # model = DPTForReconstruction()
     # print(summary(model, depth=2))
     # # inputs: in range [0, 1]
-    # emb, gt, raw, params = a.data_test.get_all(2)
+    # emb, gt, raw, params = a.data_test.get_all(5)
     # # add batch dimension
     # first_emb = emb[1]
     # first_emb = (first_emb - first_emb.min()) / (first_emb.max() - first_emb.min())
