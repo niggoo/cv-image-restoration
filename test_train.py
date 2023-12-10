@@ -29,7 +29,9 @@ class ImageLoggingCallback(Callback):
         self.num_samples = num_samples
         self.wandb_logger = wandb_logger
         # save fig to wandb_logger.save_dir
-        self.folder_path = os.path.join(self.wandb_logger._project, self.wandb_logger.version)
+        self.folder_path = os.path.join(
+            self.wandb_logger._project, self.wandb_logger.version
+        )
         # create dir
         if not os.path.exists(self.folder_path):
             os.makedirs(self.folder_path)
@@ -50,7 +52,6 @@ class ImageLoggingCallback(Callback):
                 fig_path = os.path.join(self.folder_path, f"val_image_{idx}.png")
                 # save fig
                 fig.savefig(fig_path)
-                
 
                 # Log the image to wandb
                 try:
@@ -58,6 +59,7 @@ class ImageLoggingCallback(Callback):
                         key=f"val_image_{idx}", images=[fig_path]
                     )
                 except Exception as e:
+                    # sometimes, there are weird errors
                     print(e)
                 plt.close(fig)
 
@@ -72,7 +74,7 @@ def opts_parser():
     parser.add_argument("--grad_accum_steps", type=int, default=1)
     parser.add_argument("--n_epochs", type=int, default=150)
     parser.add_argument("--dropout", type=float, default=0.1)
-    parser.add_argument("--max_grad_norm", type=float, default=1.0)
+    parser.add_argument("--max_grad_norm", type=float, default=0.0)
     # learning rate + schedule
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     # Data parameters
@@ -84,6 +86,7 @@ def opts_parser():
     parser.add_argument("--num_workers", type=int, default=-1)
     parser.add_argument("--experiment_name", type=str, default="Test")
     parser.add_argument("--checkpoint", type=str, default=None)
+    parser.add_argument("--test", action="store_true", default=False)
 
     return parser
 
@@ -108,22 +111,26 @@ def main():
     )
 
     # training dataset loading
-    datamodule = DataModule(data_paths_json_path="src/data/data_paths.json")
+    datamodule = DataModule(data_paths_json_path="src/data/data_paths_base.json")
     # create pytorch lightening module
-    net = Model()  # here is the place to init the model(s)
+    net = Model(in_channels=768)
     print(summary(net))
+
     pl_module = RestorationLitModule(
-        optimizer=AdamW, scheduler=ReduceLROnPlateau, compile=False, encoder=net
+        optimizer=AdamW,
+        scheduler=ReduceLROnPlateau,
+        compile=False,
+        encoder=net,
     )
     # create monitor to keep track of learning rate - we want to check the behaviour of our learning rate schedule
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
     # sets Checkpointing dependency to loss -> we keep the best 2 model according to loss
     checkpoint_callback = ModelCheckpoint(
-        monitor="train/loss", every_n_train_steps=1000, save_last=True, save_top_k=-1
+        monitor="val/loss", every_n_epochs=1, save_last=True, save_top_k=1
     )
 
     image_logging_callback = ImageLoggingCallback(
-        datamodule, num_samples=20, wandb_logger=wandb_logger
+        datamodule, num_samples=100, wandb_logger=wandb_logger
     )
     # create the pytorch lightening trainer by specifying the number of epochs to train, the logger,
     # on which kind of device(s) to train and possible callbacks as well as set up for Mixed Precision
@@ -142,7 +149,8 @@ def main():
     # start training
     trainer.fit(pl_module, datamodule=datamodule, ckpt_path=config.checkpoint)
 
-    # TODO: auto-log some val images + preds to wandb
+    # TODO: optionally, test the model
+    # but how to do this best with lightning?
 
 
 if __name__ == "__main__":

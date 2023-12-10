@@ -5,8 +5,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
-from torchmetrics.image.psnr import PeakSignalNoiseRatio
-
+from torchmetrics.image import PeakSignalNoiseRatio
+from torchmetrics.image import StructuralSimilarityIndexMeasure
+from einops import rearrange
 from ..utils.metrics import SILogLoss, ScaleAndShiftInvariantLoss, DiscreteNLLLoss
 
 
@@ -74,8 +75,11 @@ class RestorationLitModule(LightningModule):
 
         # metric objects for calculating and averaging across batches
         self.train_psnr = PeakSignalNoiseRatio(data_range=1)
+        self.train_ssim = StructuralSimilarityIndexMeasure(data_range=1)
         self.val_psnr = PeakSignalNoiseRatio(data_range=1)
+        self.val_ssim = StructuralSimilarityIndexMeasure(data_range=1)
         self.test_psnr = PeakSignalNoiseRatio(data_range=1)
+        self.test_ssim = StructuralSimilarityIndexMeasure(data_range=1)
 
         # for averaging loss across batches
         self.train_loss = MeanMetric()
@@ -84,6 +88,7 @@ class RestorationLitModule(LightningModule):
 
         # for tracking best so far validation Metric
         self.val_psnr_best = MaxMetric()
+        self.val_ssim_best = MaxMetric()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Perform a forward pass through the models
@@ -102,6 +107,8 @@ class RestorationLitModule(LightningModule):
         self.val_loss.reset()
         self.val_psnr.reset()
         self.val_psnr_best.reset()
+        self.val_ssim.reset()
+        self.val_ssim_best.reset()
 
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor]
@@ -145,8 +152,13 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.train_loss(loss)
         mpsnr = self.train_psnr(preds, targets)
+        ssim = self.train_ssim(
+            rearrange(preds, "b h w c -> b c h w"),
+            rearrange(targets, "b h w c -> b c h w"),
+        )
         self.log("train/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("train/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True)
 
         # return loss or backpropagation will fail
         return loss
@@ -169,18 +181,29 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.val_loss(loss)
         mpsnr = self.val_psnr(preds, targets)
+        ssim = self.val_ssim(
+            rearrange(preds, "b h w c -> b c h w"),
+            rearrange(targets, "b h w c -> b c h w"),
+        )
         self.log("val/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("val/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True)
 
     def on_validation_epoch_end(self) -> None:
         "Lightning hook that is called when a validation epoch ends."
         psnr = self.val_psnr.compute()  # get current val psnr
         self.val_psnr_best(psnr)  # update best so far val psnr
+        ssim = self.val_ssim.compute()  # get current val ssim
+        self.val_ssim_best(ssim)  # update best so far val ssim
         # log `val_psnr_best` as a value through `.compute()` method, instead of as a metric object
         # otherwise metric would be reset by lightning after each epoch
         self.log(
             "val/psnr_best", self.val_psnr_best.compute(), sync_dist=True, prog_bar=True
         )
+        self.log(
+            "val/ssim_best", self.val_ssim_best.compute(), sync_dist=True, prog_bar=True
+        )
+        
 
     def test_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
@@ -196,8 +219,13 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.train_test(loss)
         mpsnr = self.train_test(preds, targets)
+        ssim = self.test_ssim(
+            rearrange(preds, "b h w c -> b c h w"),
+            rearrange(targets, "b h w c -> b c h w"),
+        )        
         self.log("test/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True)
 
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""

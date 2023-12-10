@@ -3,7 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
-
+class PrintLayer(nn.Module):
+    def __init__(self):
+        super(PrintLayer, self).__init__()
+    
+    def forward(self, x):
+        # Do your print / debug stuff here
+        print(x.shape)
+        return x
 
 class ModifiedConvHead(nn.Module):
     """Expanded convolutional head for the DINOv2 model."""
@@ -23,17 +30,16 @@ class ModifiedConvHead(nn.Module):
         # Final convolution that combines the outputs
         self.final_conv = nn.Sequential(
             nn.Conv2d(32, 64, (1, 1), stride=1),
-            # nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.Upsample(scale_factor=2),
-            nn.Conv2d(64, 64, (3, 3), padding=(1, 1)),
-            # nn.BatchNorm2d(64),
+            nn.Conv2d(64, 128, (3, 3), padding=(1, 1)),
+            nn.ReLU(),
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(128, 64, (3, 3), padding=(1, 1)),
             nn.ReLU(),
             nn.Upsample(scale_factor=2),
             nn.Conv2d(64, 32, (3, 3), padding=(1, 1)),
-            # nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Upsample(scale_factor=2),
             nn.Conv2d(32, num_labels, (3, 3), padding=(1, 1)),
             nn.Sigmoid()
         )
@@ -61,6 +67,6 @@ class ModifiedConvHead(nn.Module):
 
 
 if __name__ == "__main__":
-    model = ModifiedConvHead(384, 36, 36, 1, (512, 512))
-    pred = model(torch.randn(8, 4, 36 * 36, 384))
+    model = ModifiedConvHead(768, 36, 36, 1, (512, 512))
+    pred = model(torch.randn(8, 4, 36 * 36, 768))
     print(pred.shape)
