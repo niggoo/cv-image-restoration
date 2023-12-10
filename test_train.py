@@ -70,23 +70,23 @@ def opts_parser():
     usage = "Restores air-images of person in a forest"
     parser = ArgumentParser(description=usage)
     # Training parameters
-    parser.add_argument("--batch_size", type=int, default=8192)
+    parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--grad_accum_steps", type=int, default=1)
     parser.add_argument("--n_epochs", type=int, default=150)
-    parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--max_grad_norm", type=float, default=0.0)
     # learning rate + schedule
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     # Data parameters
-    parser.add_argument("--data_dirc", type=str)
+    # parser.add_argument("--data_dirc", type=str)
     # Model parameters
     parser.add_argument("--d_model", type=int, default=768)
-    parser.add_argument("--n_layers", type=int, default=12)
+    # parser.add_argument("--n_layers", type=int, default=12)
     # Misc.
-    parser.add_argument("--num_workers", type=int, default=-1)
+    parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--experiment_name", type=str, default="Test")
     parser.add_argument("--checkpoint", type=str, default=None)
     parser.add_argument("--test", action="store_true", default=False)
+    parser.add_argument("--pin_memory", action="store_true", default=False)
 
     return parser
 
@@ -111,9 +111,14 @@ def main():
     )
 
     # training dataset loading
-    datamodule = DataModule(data_paths_json_path="src/data/data_paths_base.json")
+    datamodule = DataModule(
+        data_paths_json_path="src/data/data_paths_base.json",
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        pin_memory=config.pin_memory,
+    )
     # create pytorch lightening module
-    net = Model(in_channels=768)
+    net = Model(in_channels=config.d_model)
     print(summary(net))
 
     pl_module = RestorationLitModule(

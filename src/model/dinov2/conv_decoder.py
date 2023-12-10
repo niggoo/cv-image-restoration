@@ -27,21 +27,22 @@ class ModifiedConvHead(nn.Module):
         self.conv3 = nn.Conv2d(in_channels, 8, kernel_size=1, stride=1)
         self.conv4 = nn.Conv2d(in_channels, 8, kernel_size=1, stride=1)
 
-        # Final convolution that combines the outputs
+        # Enhanced final convolution that combines the outputs
         self.final_conv = nn.Sequential(
-            nn.Conv2d(32, 64, (1, 1), stride=1),
-            nn.ReLU(),
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(64, 128, (3, 3), padding=(1, 1)),
-            nn.ReLU(),
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(128, 64, (3, 3), padding=(1, 1)),
-            nn.ReLU(),
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(64, 32, (3, 3), padding=(1, 1)),
-            nn.ReLU(),
-            nn.Conv2d(32, num_labels, (3, 3), padding=(1, 1)),
-            nn.Sigmoid()
+                nn.Conv2d(32, 128, (1, 1), stride=1),
+                nn.ReLU(),
+                nn.Conv2d(128, 256, (3, 3), padding=1),
+                nn.ReLU(),
+                nn.Upsample(scale_factor=2),
+                # probably way to many kernels here
+                nn.Conv2d(256, 128, (3, 3), padding=1),
+                nn.ReLU(),
+                nn.Upsample(scale_factor=2),
+                nn.Conv2d(128, 64, (3, 3), padding=1),
+                nn.ReLU(),
+                nn.Upsample(scale_factor=2),
+                nn.Conv2d(64, num_labels, (3, 3), padding=1),
+                nn.Sigmoid()
         )
 
     def forward(self, embeddings):

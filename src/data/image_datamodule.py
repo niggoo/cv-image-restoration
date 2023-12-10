@@ -78,6 +78,7 @@ class ImageDataModule(LightningDataModule):
         batch_size: int = 8,
         num_workers: int = 0,
         pin_memory: bool = False,
+        persistent_workers: bool = True,
     ) -> None:
         """Initialize a DataModule.
 
