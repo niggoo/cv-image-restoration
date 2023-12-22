@@ -152,10 +152,7 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.train_loss(loss)
         mpsnr = self.train_psnr(preds, targets)
-        ssim = self.train_ssim(
-            rearrange(preds, "b h w c -> b c h w"),
-            rearrange(targets, "b h w c -> b c h w"),
-        )
+        ssim = self.train_ssim(preds, targets)
         self.log("train/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("train/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
         self.log("train/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True)
@@ -181,10 +178,7 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.val_loss(loss)
         mpsnr = self.val_psnr(preds, targets)
-        ssim = self.val_ssim(
-            rearrange(preds, "b h w c -> b c h w"),
-            rearrange(targets, "b h w c -> b c h w"),
-        )
+        ssim = self.val_ssim(preds, targets)
         self.log("val/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True)

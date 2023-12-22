@@ -18,16 +18,16 @@ def plot_images(raw, pred, gt):
     pred = pred - pred.min()
     pred = pred / pred.max()
     pred = pred * 255
-    raw = raw.numpy().astype(int)
-    gt = gt.numpy().astype(int)
-    pred = pred.numpy().astype(int)
+    raw = raw.cpu().numpy().astype(int)
+    gt = gt.cpu().numpy().astype(int)
+    pred = pred.cpu().numpy().astype(int)
     cmap = "gray"
     fig, axs = plt.subplots(1, 3)
-    axs[0].imshow(raw, cmap=cmap)
+    axs[0].imshow(raw.reshape(512, 512), cmap=cmap)
     axs[0].set_title("Input")
-    axs[1].imshow(pred, cmap=cmap)
+    axs[1].imshow(pred.reshape(512, 512), cmap=cmap)
     axs[1].set_title("Prediction")
-    axs[2].imshow(gt, cmap=cmap)
+    axs[2].imshow(gt.reshape(512, 512), cmap=cmap)
     axs[2].set_title("GT")
     plt.tight_layout()
     for ax in axs:

@@ -14,8 +14,8 @@ from argparse import ArgumentParser
 from src.model.restoration_module import RestorationLitModule
 
 # Here is the place to import your stuff
-from src.data.emb_datamodule import EmbeddingDataModule as DataModule
-from src.model.dinov2.conv_decoder import ModifiedConvHead as Model
+from src.data.image_datamodule import ImageDataModule as DataModule
+from src.model.unet.unet import (UNet as Model)
 
 # TODO: we should not do this here :D
 from lightning.pytorch.callbacks import Callback
@@ -70,7 +70,7 @@ def opts_parser():
     usage = "Restores air-images of person in a forest"
     parser = ArgumentParser(description=usage)
     # Training parameters
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--grad_accum_steps", type=int, default=1)
     parser.add_argument("--n_epochs", type=int, default=150)
     parser.add_argument("--max_grad_norm", type=float, default=0.0)
@@ -104,7 +104,7 @@ def main():
     # logging is done using wandb
     wandb_logger = WandbLogger(
         project="CV2023",
-        group="Test",
+        group="U-Net 1",
         notes="First Tests",
         config=config,  # this logs all hyperparameters for us
         name=config.experiment_name,
@@ -112,13 +112,13 @@ def main():
 
     # training dataset loading
     datamodule = DataModule(
-        data_paths_json_path="src/data/data_paths_base.json",
+        data_paths_json_path="src/data/data_paths.json",
         batch_size=config.batch_size,
         num_workers=config.num_workers,
         pin_memory=config.pin_memory,
     )
     # create pytorch lightening module
-    net = Model(in_channels=config.d_model)
+    net = Model()
     print(summary(net))
 
     pl_module = RestorationLitModule(

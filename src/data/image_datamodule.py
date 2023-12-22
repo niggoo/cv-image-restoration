@@ -17,6 +17,16 @@ class ImageDataSet(Dataset):
     def __len__(self):
         return len(self.data_paths)
 
+    def get_all(self, idx):
+        emb, gt = self.__getitem__(idx)
+        # load the raw image
+        raw = torchvision.io.read_image(self.data_paths[idx]["raw_images"][0], ImageReadMode.GRAY ).float()
+        # load parameters file
+        with open(self.data_paths[idx]["parameters"]) as file:
+            params = file.read()
+
+        return emb, gt, raw / 255.0, params
+
     # This thing should be efficient as it gets
     def __getitem__(self, idx):
         # get the sample
