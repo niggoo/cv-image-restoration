@@ -15,12 +15,12 @@ def plot_images(raw, pred, gt):
     raw = raw * 255
     gt = gt * 255
     # scale prediction values to [0, 255] using min-max scaling
-    pred = pred - pred.min()
-    pred = pred / pred.max()
+    # pred = pred - pred.min()
+    # pred = pred / pred.max()
     pred = pred * 255
     raw = raw.numpy().astype(int)
     gt = gt.numpy().astype(int)
-    pred = pred.numpy().astype(int)
+    pred = pred.cpu().numpy().astype(int)
     cmap = "gray"
     fig, axs = plt.subplots(1, 3)
     axs[0].imshow(raw, cmap=cmap)
@@ -52,8 +52,10 @@ def main():
     data_module = DataModule(data_paths_json_path=data_paths_json_path)
     data_module.setup()
     # load checkpoint
-    pl_module = RestorationLitModule(optimizer=None, scheduler=None, compile=None, encoder=net)
-    checkpoint_path = "CV2023/v8d05buj/checkpoints/epoch=7-step=22000.ckpt"
+    pl_module = RestorationLitModule(
+        optimizer=None, scheduler=None, compile=None, encoder=net
+    )
+    checkpoint_path = "CV2023/al7538jh/checkpoints/last.ckpt"
     checkpoint = torch.load(checkpoint_path)
     pl_module.load_state_dict(checkpoint["state_dict"])
 
@@ -67,7 +69,11 @@ def main():
         # create folder in checkpoint path to save the images
         Path(checkpoint_path).parent.joinpath("images").mkdir(exist_ok=True)
         # save
-        fig.savefig(Path(checkpoint_path).parent.joinpath("images").joinpath(f"image_{idx}_test.png"))
+        fig.savefig(
+            Path(checkpoint_path)
+            .parent.joinpath("images")
+            .joinpath(f"image_{idx}_test.png")
+        )
         fig.show()
 
 
