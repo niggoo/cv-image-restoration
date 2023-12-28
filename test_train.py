@@ -15,12 +15,12 @@ from src.model.restoration_module import RestorationLitModule
 
 # Here is the place to import your stuff
 from src.data.image_datamodule import ImageDataModule as DataModule
-from src.model.unet.unet import (UNet as Model)
+from src.model.unet.unet import UNet as Model
 
 # TODO: we should not do this here :D
 from lightning.pytorch.callbacks import Callback
 import matplotlib.pyplot as plt
-from test_plot import plot_images
+from test_plot import plot_images, plot_pred_image
 
 
 class ImageLoggingCallback(Callback):
@@ -35,6 +35,8 @@ class ImageLoggingCallback(Callback):
         # create dir
         if not os.path.exists(self.folder_path):
             os.makedirs(self.folder_path)
+        if not os.path.exists(os.path.join(self.folder_path, "single")):
+            os.makedirs(os.path.join(self.folder_path, "single"))
 
     def on_train_epoch_end(self, trainer, pl_module):
         pl_module.eval()
@@ -48,10 +50,16 @@ class ImageLoggingCallback(Callback):
                 pred = pred.squeeze(0).detach()
 
                 fig = plot_images(raw=raw, pred=pred, gt=gt)
+                fig_single = plot_pred_image(pred)
                 # add filename
                 fig_path = os.path.join(self.folder_path, f"val_image_{idx}.png")
-                # save fig
+                fig_single_path = os.path.join(
+                    self.folder_path, "single", f"val_image_{idx}.png"
+                )
+                    
+                # save figs
                 fig.savefig(fig_path)
+                fig_single.savefig(fig_single_path)
 
                 # Log the image to wandb
                 try:
@@ -61,7 +69,15 @@ class ImageLoggingCallback(Callback):
                 except Exception as e:
                     # sometimes, there are weird errors
                     print(e)
+                # keep independent to log as many images as possible
+                try:
+                    self.wandb_logger.log_image(
+                        key=f"val_image_{idx}_single", images=[fig_single_path]
+                    )
+                except Exception as e:
+                    print(e)
                 plt.close(fig)
+                plt.close(fig_single)
 
         pl_module.train()
 
@@ -70,7 +86,7 @@ def opts_parser():
     usage = "Restores air-images of person in a forest"
     parser = ArgumentParser(description=usage)
     # Training parameters
-    parser.add_argument("--batch_size", type=int, default=1)
+    parser.add_argument("--batch_size", type=int, default=6)
     parser.add_argument("--grad_accum_steps", type=int, default=1)
     parser.add_argument("--n_epochs", type=int, default=150)
     parser.add_argument("--max_grad_norm", type=float, default=0.0)
@@ -103,8 +119,8 @@ def main():
 
     # logging is done using wandb
     wandb_logger = WandbLogger(
-        project="CV2023",
-        group="U-Net 1",
+        project="CV2023-share",
+        group="U-Net Baseline",
         notes="First Tests",
         config=config,  # this logs all hyperparameters for us
         name=config.experiment_name,
