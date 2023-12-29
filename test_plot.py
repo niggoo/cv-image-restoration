@@ -74,11 +74,7 @@ def main():
     pl_module = RestorationLitModule(
         optimizer=None, scheduler=None, compile=None, encoder=net
     )
-<<<<<<< HEAD
     checkpoint_path = "CV2023/al7538jh/checkpoints/last.ckpt"
-=======
-    checkpoint_path = "CV2023/v8d05buj/checkpoints/epoch=7-step=22000.ckpt"
->>>>>>> unet-baseline
     checkpoint = torch.load(checkpoint_path)
     pl_module.load_state_dict(checkpoint["state_dict"])
 
