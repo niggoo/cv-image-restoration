@@ -14,7 +14,7 @@ class PrintLayer(nn.Module):
 
 class ModifiedConvHead(nn.Module):
     """Expanded convolutional head for the DINOv2 model."""
-    def __init__(self, in_channels=384, tokenW=36, tokenH=36, num_labels=1, image_size=(512, 512)):
+    def __init__(self, in_channels=768, tokenW=36, tokenH=36, num_labels=1, image_size=(512, 512)):
         super(ModifiedConvHead, self).__init__()
         self.in_channels = in_channels
         self.width = tokenW

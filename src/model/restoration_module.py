@@ -222,7 +222,7 @@ class RestorationLitModule(LightningModule):
         self.log("test/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True)
 
     def rearrange_for_ssim(self, data):
-        if data.shape[3] == 4:
+        if data.shape[3] == 1:
             return rearrange(data, "b h w c -> b c h w")
         else:
             return data
