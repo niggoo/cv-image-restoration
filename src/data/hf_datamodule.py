@@ -1,5 +1,7 @@
 import torch
+from lightning import LightningDataModule
 
+from src.data.base_datamodule import BaseDataModule
 from .image_datamodule import ImageDataModule
 from safetensors.torch import load_file
 import json
@@ -11,13 +13,13 @@ from torchvision.io import ImageReadMode
 from transformers import AutoImageProcessor
 
 
-class RegularDataSet(Dataset):
+class HFDataSet(Dataset):
     def __init__(
-        self, data_paths: dict, model_name: str = "facebook/dpt-dinov2-small-nyu"
+        self, data_paths: dict, backbone_model_name: str = "facebook/dpt-dinov2-small-nyu"
     ):
         super().__init__()
         self.data_paths = data_paths
-        self.processor = AutoImageProcessor.from_pretrained(model_name)
+        self.processor = AutoImageProcessor.from_pretrained(backbone_model_name)
         # self.processor.crop_size = {"height": 512, "width": 512}
 
     def __len__(self):
@@ -60,10 +62,29 @@ class RegularDataSet(Dataset):
         return integral_images, gt / 255.0  # "normalize" to [0, 1]
 
 
-class RegularDataModule(ImageDataModule):
-    """
-    only override the setup method
-    """
+class HFImageDataModule(BaseDataModule):
+    def __init__(
+        self,
+            backbone_model_name: str = "facebook/dpt-dinov2-small-nyu",
+            data_paths_json_path: str = "../data/data_paths.json",
+            data_split: Tuple[float, float, float] = (0.80, 0.1, 0.1),
+            batch_size: int = 8,
+            num_workers: int = 0,
+            pin_memory: bool = False,
+            persistent_workers: bool = True
+    ) -> None:
+        """Initialize a DataModule.
+
+        :param data_dir: The data directory. Defaults to `"data/"`.
+        :param data_split: The train, validation and test split. Defaults to `(55_000, 5_000, 10_000)`.
+        :param batch_size: The batch size. Defaults to `64`.
+        :param num_workers: The number of workers. Defaults to `0`.
+        :param pin_memory: Whether to pin memory. Defaults to `False`.
+        """
+        super().__init__(data_paths_json_path, data_split, batch_size, num_workers, pin_memory, persistent_workers)
+
+        self.backbone_model_name = backbone_model_name
+
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -87,11 +108,11 @@ class RegularDataModule(ImageDataModule):
         train_size = int(total_items * self.hparams.data_split[0])
         val_size = int(total_items * self.hparams.data_split[1])
 
-        self.data_train: Optional[Dataset] = RegularDataSet(data_paths[:train_size])
-        self.data_val: Optional[Dataset] = RegularDataSet(
+        self.data_train: Optional[Dataset] = HFDataSet(data_paths[:train_size], self.backbone_model_name)
+        self.data_val: Optional[Dataset] = HFDataSet(
             data_paths[train_size : train_size + val_size]
         )
-        self.data_test: Optional[Dataset] = RegularDataSet(
+        self.data_test: Optional[Dataset] = HFDataSet(
             data_paths[train_size + val_size :]
         )
 
@@ -108,14 +129,14 @@ class RegularDataModule(ImageDataModule):
 
         # load and split datasets only if not loaded already
         if not self.data_train and not self.data_val and not self.data_test:
-            dataset = RegularDataSet(self.hparams.data_dir)
+            dataset = HFDataSet(self.hparams.data_dir)
             self.data_train, self.data_val, self.data_test = random_split(
                 dataset, self.hparams.data_split
             )
 
 
 if __name__ == "__main__":
-    a = RegularDataModule(data_paths_json_path="data_paths.json")
+    a = HFImageDataModule(data_paths_json_path="data_paths.json")
     a.setup()
     emb, gt, raw, params = a.data_test.get_all(0)
     raw = raw.permute(2, 0, 1)

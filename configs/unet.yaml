@@ -1,0 +1,33 @@
+description: "Restores air-images of person in a forest"
+
+# Training parameters
+batch_size: 1
+grad_accum_steps: 1
+n_epochs: 150
+max_grad_norm: 0.0
+learning_rate: 0.001
+
+# Miscellaneous
+num_workers: 0
+experiment_name: "Test"
+checkpoint: null  # null in YAML represents None in Python
+test: false       # false in YAML represents False in Python
+pin_memory: false # false in YAML represents False in Python
+
+
+datamodule: "ImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
+model: "UNet" # "UNet", "ModifiedConvHead", ("DPT")
+
+early_stopping:
+  patience: 5
+  min_delta: 0.001
+
+
+# UNet
+img_standardization:
+  mean: 109.1209
+  std: 18.0851
+
+
+# HFImageDataModule
+backbone_model_name: "facebook/dpt-dinov2-small-nyu"

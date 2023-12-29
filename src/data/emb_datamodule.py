@@ -1,5 +1,6 @@
 import torch
 
+from src.data.base_datamodule import BaseDataModule
 from .image_datamodule import ImageDataModule
 from safetensors.torch import load_file
 import json
@@ -51,10 +52,7 @@ class EmbeddingDataSet(Dataset):
         return embeddings, gt / 255.0  # "normalize" to [0, 1]
 
 
-class EmbeddingDataModule(ImageDataModule):
-    """
-    only override the setup method
-    """
+class EmbeddingDataModule(BaseDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.

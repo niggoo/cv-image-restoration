@@ -1,25 +1,30 @@
 import torch
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from omegaconf import DictConfig, OmegaConf
+import hydra
 
 import lightning as L
 from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint, EarlyStopping
 from lightning.pytorch import Trainer, seed_everything
 from torchinfo import summary
 
 import os
-from argparse import ArgumentParser
 
+from src.data.emb_datamodule import EmbeddingDataModule
+from src.data.image_datamodule import ImageDataModule
+from src.data.hf_datamodule import HFImageDataModule
+from src.model.dinov2.conv_decoder import ModifiedConvHead
 from src.model.restoration_module import RestorationLitModule
 
 # Here is the place to import your stuff
-from src.data.image_datamodule import ImageDataModule as DataModule
-from src.model.unet.unet import UNet as Model
 
 # TODO: we should not do this here :D
 from lightning.pytorch.callbacks import Callback
 import matplotlib.pyplot as plt
+
+from src.model.unet.unet import UNet
 from test_plot import plot_images, plot_pred_image
 
 
@@ -56,7 +61,7 @@ class ImageLoggingCallback(Callback):
                 fig_single_path = os.path.join(
                     self.folder_path, "single", f"val_image_{idx}.png"
                 )
-                    
+
                 # save figs
                 fig.savefig(fig_path)
                 fig_single.savefig(fig_single_path)
@@ -82,35 +87,9 @@ class ImageLoggingCallback(Callback):
         pl_module.train()
 
 
-def opts_parser():
-    usage = "Restores air-images of person in a forest"
-    parser = ArgumentParser(description=usage)
-    # Training parameters
-    parser.add_argument("--batch_size", type=int, default=6)
-    parser.add_argument("--grad_accum_steps", type=int, default=1)
-    parser.add_argument("--n_epochs", type=int, default=150)
-    parser.add_argument("--max_grad_norm", type=float, default=0.0)
-    # learning rate + schedule
-    parser.add_argument("--learning_rate", type=float, default=1e-3)
-    # Data parameters
-    # parser.add_argument("--data_dirc", type=str)
-    # Model parameters
-    parser.add_argument("--d_model", type=int, default=768)
-    # parser.add_argument("--n_layers", type=int, default=12)
-    # Misc.
-    parser.add_argument("--num_workers", type=int, default=0)
-    parser.add_argument("--experiment_name", type=str, default="Test")
-    parser.add_argument("--checkpoint", type=str, default=None)
-    parser.add_argument("--test", action="store_true", default=False)
-    parser.add_argument("--pin_memory", action="store_true", default=False)
-
-    return parser
-
-
-def main():
-    # parse command line
-    parser = opts_parser()
-    config = parser.parse_args()
+@hydra.main(version_base=None, config_path="./configs/", config_name="unet")
+def main(cfg: DictConfig):
+    config = cfg
     # set seeds for numpy, torch and python.random
     seed_everything(420, workers=True)
     torch.autograd.set_detect_anomaly(True)
@@ -118,23 +97,13 @@ def main():
     device = "gpu" if torch.cuda.is_available() else "cpu"
 
     # logging is done using wandb
-    wandb_logger = WandbLogger(
-        project="CV2023-share",
-        group="U-Net Baseline",
-        notes="First Tests",
-        config=config,  # this logs all hyperparameters for us
-        name=config.experiment_name,
-    )
+    wandb_logger = init_wandb(config)
 
     # training dataset loading
-    datamodule = DataModule(
-        data_paths_json_path="src/data/data_paths.json",
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
-        pin_memory=config.pin_memory,
-    )
+    datamodule = get_datamodule(config)
     # create pytorch lightening module
-    net = Model()
+    net = get_model(config)
+
     print(summary(net))
 
     pl_module = RestorationLitModule(
@@ -153,13 +122,16 @@ def main():
     image_logging_callback = ImageLoggingCallback(
         datamodule, num_samples=100, wandb_logger=wandb_logger
     )
+    early_stop_callback = EarlyStopping(monitor="val/loss", min_delta=config.early_stopping.min_delta,
+                                        patience=config.early_stopping.patience, verbose=True, mode="min")
+
     # create the pytorch lightening trainer by specifying the number of epochs to train, the logger,
     # on which kind of device(s) to train and possible callbacks as well as set up for Mixed Precision
     trainer = L.Trainer(
         max_epochs=config.n_epochs,
         logger=wandb_logger,
         accelerator=device,
-        callbacks=[lr_monitor, checkpoint_callback, image_logging_callback],
+        callbacks=[lr_monitor, checkpoint_callback, image_logging_callback, early_stop_callback],
         default_root_dir=None,  # change dirc if needed
         precision="32",  # 32 is full precision, maybe we need
         gradient_clip_val=config.max_grad_norm,  # 0. means no clipping
@@ -172,6 +144,52 @@ def main():
 
     # TODO: optionally, test the model
     # but how to do this best with lightning?
+
+
+def init_wandb(config):
+    logger = WandbLogger(
+        project="CV2023-share",
+        group="U-Net Baseline",
+        notes="First Tests",
+        config=OmegaConf.to_container(config),  # this logs all hyperparameters for us
+        name=config.experiment_name
+    )
+    return logger
+
+
+def get_model(config):
+    if config.model == "UNet":
+        return UNet()
+    elif config.model == "ModifiedConvHead":
+        return ModifiedConvHead()
+
+def get_datamodule(config):
+    if config.datamodule == "ImageDataModule":
+        return ImageDataModule(
+            mean=config.img_standardization.mean,
+            std=config.img_standardization.std,
+            data_paths_json_path="src/data/data_paths.json",
+            batch_size=config.batch_size,
+            num_workers=config.num_workers,
+            pin_memory=config.pin_memory,
+        )
+    elif config.datamodule == "EmbeddingDataModule":
+        return EmbeddingDataModule(
+            data_paths_json_path="src/data/data_paths_base.json",
+            batch_size=config.batch_size,
+            num_workers=config.num_workers,
+            pin_memory=config.pin_memory,
+        )
+    elif config.datamodule == "HFImageDataModule":
+        return HFImageDataModule(
+            backbone_model_name=config.backbone_model_name,
+            data_paths_json_path="src/data/data_paths_base.json",
+            batch_size=config.batch_size,
+            num_workers=config.num_workers,
+            pin_memory=config.pin_memory,
+        )
+    else:
+        raise ValueError(f"Unknown datamodule parameter given: {config.datamodule}!")
 
 
 if __name__ == "__main__":

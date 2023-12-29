@@ -152,7 +152,8 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.train_loss(loss)
         mpsnr = self.train_psnr(preds, targets)
-        ssim = self.train_ssim(preds, targets)
+        ssim = self.train_ssim(self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets))
+
         self.log("train/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("train/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
         self.log("train/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True)
@@ -178,7 +179,8 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.val_loss(loss)
         mpsnr = self.val_psnr(preds, targets)
-        ssim = self.val_ssim(preds, targets)
+        ssim = self.val_ssim(self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets))
+
         self.log("val/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True)
@@ -213,14 +215,17 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.train_test(loss)
         mpsnr = self.train_test(preds, targets)
-        ssim = self.test_ssim(
-            rearrange(preds, "b h w c -> b c h w"),
-            rearrange(targets, "b h w c -> b c h w"),
-        )        
+        ssim = self.test_ssim(self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets))
+
         self.log("test/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True)
 
+    def rearrange_for_ssim(self, data):
+        if data.shape[3] == 4:
+            return rearrange(data, "b h w c -> b c h w")
+        else:
+            return data
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
         pass
