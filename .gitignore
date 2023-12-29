@@ -10,3 +10,5 @@ downloaded/
 *.png
 transformers/**
 wandb/**
+outputs/**
+.vscode/**

@@ -6,7 +6,6 @@ from lightning.pytorch import seed_everything
 from src.model.restoration_module import RestorationLitModule
 from pathlib import Path
 
-# Here is the place to import your stuff
 from src.data.emb_datamodule import EmbeddingDataModule as DataModule
 from src.model.dinov2.conv_decoder import ModifiedConvHead as Model
 
@@ -15,8 +14,9 @@ def plot_images(raw, pred, gt):
     raw = raw * 255
     gt = gt * 255
     # scale prediction values to [0, 255] using min-max scaling
-    pred = pred - pred.min()
-    pred = pred / pred.max()
+    # TODO: is this needed for any of our configs?
+    # pred = pred - pred.min()
+    # pred = pred / pred.max()
     pred = pred * 255
     raw = raw.cpu().numpy().astype(int)
     gt = gt.cpu().numpy().astype(int)
@@ -39,8 +39,8 @@ def plot_images(raw, pred, gt):
 
 def plot_pred_image(pred):
     # scale prediction values to [0, 255] using min-max scaling
-    pred = pred - pred.min()
-    pred = pred / pred.max()
+    # pred = pred - pred.min()
+    # pred = pred / pred.max()
     pred = pred * 255
     pred = pred.cpu().numpy().astype(int)
     cmap = "gray"

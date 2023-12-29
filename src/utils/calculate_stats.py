@@ -45,3 +45,7 @@ results = process_integral_images(data)
 # Display the results
 for fp_value, stats in results.items():
     print(f"fp-{fp_value}: Mean: {stats['mean']}, Std: {stats['std']}")
+# print mean of all
+means = [stats['mean'] for stats in results.values()]
+stds = [stats['std'] for stats in results.values()]
+print(f"Mean: {np.mean(means)}, Std: {np.mean(stds)}")
