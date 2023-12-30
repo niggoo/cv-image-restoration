@@ -25,6 +25,12 @@ from src.model.restoration_module import RestorationLitModule
 from src.model.unet.unet import UNet
 from test_plot import plot_images, plot_pred_image
 
+DINO_SIZE_MAP = {
+    "small": 384,
+    "base": 768,
+    "large": 1024,
+}
+
 
 @hydra.main(version_base=None, config_path="./configs/", config_name="unet")
 def main(cfg: DictConfig):
@@ -49,7 +55,8 @@ def main(cfg: DictConfig):
         optimizer=AdamW,
         scheduler=ReduceLROnPlateau,
         compile=False,
-        encoder=net,
+        config=config,
+        model=net,
     )
     # create monitor to keep track of learning rate - we want to check the behaviour of our learning rate schedule
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
@@ -67,6 +74,7 @@ def main(cfg: DictConfig):
         patience=config.early_stopping.patience,
         verbose=True,
         mode="min",
+        log_rank_zero_only=True,
     )
 
     # create the pytorch lightening trainer by specifying the number of epochs to train, the logger,
@@ -86,7 +94,7 @@ def main(cfg: DictConfig):
         gradient_clip_val=config.max_grad_norm,  # 0. means no clipping
         accumulate_grad_batches=config.grad_accum_steps,
         log_every_n_steps=50,
-        devices=-1,
+        devices=-1 if device == "gpu" else None,
     )
     # start training
     trainer.fit(pl_module, datamodule=datamodule, ckpt_path=config.checkpoint)
@@ -180,8 +188,8 @@ def get_datamodule(config):
         # HF uses HuggingFace a pretrained model and normalizes using a processor
         # ImageDataModule uses the provided mean and std to normalize, calculated on the train set
         return ImageDataModule(
-            mean=config.img_standardization.mean,
-            std=config.img_standardization.std,
+            mean=config.img_standardization.mean if config.img_standardization.do_destandardize else 0,
+            std=config.img_standardization.std if config.img_standardization.do_destandardize else 1,
             data_paths_json_path="src/data/data_paths.json",
             batch_size=config.batch_size,
             num_workers=config.num_workers,
@@ -205,11 +213,37 @@ def get_datamodule(config):
     else:
         raise ValueError(f"Unknown datamodule parameter given: {config.datamodule}!")
 
-DINO_SIZE_MAP = {
-    "small": 384,
-    "base": 768,
-    "large": 1024,
-}
+
+class ConservativeEarlyStopping(EarlyStopping):
+    """Only stop if *all* processes want to stop, not only 1"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _run_early_stopping_check(self, trainer) -> None:
+        """Checks whether the early stopping condition is met and if so tells the trainer to stop the training."""
+        logs = trainer.callback_metrics
+
+        if (
+            trainer.fast_dev_run
+            or not self._validate_condition_metric(  # disable early_stopping with fast_dev_run
+                logs
+            )
+        ):  # short circuit if metric not present
+            return
+
+        current = logs[self.monitor].squeeze()
+        should_stop, reason = self._evaluate_stopping_criteria(current)
+
+        # stop every ddp process if any world process decides to stop
+        # CHANGED: all = True
+        should_stop = trainer.strategy.reduce_boolean_decision(should_stop, all=True)
+        trainer.should_stop = trainer.should_stop or should_stop
+        if should_stop:
+            self.stopped_epoch = trainer.current_epoch
+        if reason and self.verbose:
+            self._log_info(trainer, reason, self.log_rank_zero_only)
+
 
 if __name__ == "__main__":
     main()

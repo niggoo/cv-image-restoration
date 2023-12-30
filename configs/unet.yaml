@@ -1,7 +1,7 @@
 description: "Restores air-images of person in a forest using a simple UNet baseline"
 
 # Training parameters
-batch_size: 1
+batch_size: 6
 grad_accum_steps: 1
 n_epochs: 150
 max_grad_norm: 0.0
@@ -18,12 +18,14 @@ datamodule: "ImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFIma
 model: "UNet" # "UNet", "ModifiedConvHead", ("DPT")
 
 early_stopping:
-  patience: 5
-  min_delta: 0.001
+  patience: 10
+  min_delta: 0
 
 
 # UNet
 img_standardization:
+  do_standardize: true
+  do_destandardize: false
   mean: 109.1209
   std: 18.0851
 

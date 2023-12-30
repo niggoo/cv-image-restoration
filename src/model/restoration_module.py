@@ -2,13 +2,11 @@ from typing import Any, Dict, Tuple
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.image import PeakSignalNoiseRatio
 from torchmetrics.image import StructuralSimilarityIndexMeasure
 from einops import rearrange
-from ..utils.metrics import SILogLoss, ScaleAndShiftInvariantLoss, DiscreteNLLLoss
 
 
 class RestorationLitModule(LightningModule):
@@ -49,12 +47,11 @@ class RestorationLitModule(LightningModule):
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
         compile: bool,
-        encoder: torch.nn.Module = torch.nn.Identity(),
-        decoder: torch.nn.Module = torch.nn.Identity(),
+        config,
+        model: torch.nn.Module = torch.nn.Identity(),
     ) -> None:
         """
-        :param encoder: Encoder model to train defaults to identity if not needed
-        :param decoder: Decoder model to train defaults to identity if not needed
+        :param model: model model to train defaults to identity if not needed
         :param optimizer: The optimizer to use for training.
         :param scheduler: The learning rate scheduler to use for training.
         """
@@ -64,11 +61,13 @@ class RestorationLitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         # ignore takes out the torch modules, otherwise they are saved twice
         self.save_hyperparameters(
-            logger=False, ignore=["encoder", "decoder"]
+            logger=False, ignore=["model"]
         )  # True --> we additionally log the hyperparameter
 
-        self.encoder = encoder
-        self.decoder = decoder
+        self.model = model
+        # XXX: we only use the config for standardization
+        # but maybe also for something else in the future?
+        self.config = config
 
         # loss function
         self.loss_fn = nn.MSELoss()
@@ -96,8 +95,7 @@ class RestorationLitModule(LightningModule):
         :param x: A tensor of images.
         :return: A tensor of logits.
         """
-        x = self.encoder(x)
-        x = self.decoder(x)
+        x = self.model(x)
         return x
 
     def on_train_start(self) -> None:
@@ -124,7 +122,13 @@ class RestorationLitModule(LightningModule):
         """
         x, gt = batch
         restored = self.forward(x)
+        if self.config.img_standardization.do_destandardize:
+            restored = (
+                restored * self.config.img_standardization.std
+            ) + self.config.img_standardization.mean
+
         # check for nan values
+        # just for debugging.
         if torch.isnan(restored).any():
             print("Nan values in prediction")
             # replace with zeros
@@ -152,7 +156,9 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.train_loss(loss)
         mpsnr = self.train_psnr(preds, targets)
-        ssim = self.train_ssim(self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets))
+        ssim = self.train_ssim(
+            self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets)
+        )
 
         self.log("train/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("train/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
@@ -179,7 +185,9 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.val_loss(loss)
         mpsnr = self.val_psnr(preds, targets)
-        ssim = self.val_ssim(self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets))
+        ssim = self.val_ssim(
+            self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets)
+        )
 
         self.log("val/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
@@ -199,7 +207,6 @@ class RestorationLitModule(LightningModule):
         self.log(
             "val/ssim_best", self.val_ssim_best.compute(), sync_dist=True, prog_bar=True
         )
-        
 
     def test_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
@@ -215,17 +222,21 @@ class RestorationLitModule(LightningModule):
         # update and log metrics
         mloss = self.train_test(loss)
         mpsnr = self.train_test(preds, targets)
-        ssim = self.test_ssim(self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets))
+        ssim = self.test_ssim(
+            self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets)
+        )
 
         self.log("test/loss", mloss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True)
 
     def rearrange_for_ssim(self, data):
+        # dino-based models come out with a different shape.
         if data.shape[3] == 1:
             return rearrange(data, "b h w c -> b c h w")
         else:
             return data
+
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
         pass
@@ -240,8 +251,7 @@ class RestorationLitModule(LightningModule):
         :param stage: Either `"fit"`, `"validate"`, `"test"`, or `"predict"`.
         """
         if self.hparams.compile and stage == "fit":
-            self.encoder = torch.compile(self.encoder)
-            self.decoder = torch.compile(self.decoder)
+            self.model = torch.compile(self.model)
 
     def configure_optimizers(self) -> Dict[str, Any]:
         """Choose what optimizers and learning-rate schedulers to use in your optimization.

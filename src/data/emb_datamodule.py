@@ -1,10 +1,9 @@
 import torch
 
 from src.data.base_datamodule import BaseDataModule
-from .image_datamodule import ImageDataModule
 from safetensors.torch import load_file
 import json
-from typing import Optional, Tuple
+from typing import Optional
 import random
 import torchvision
 from torch.utils.data import Dataset, random_split
@@ -53,7 +52,6 @@ class EmbeddingDataSet(Dataset):
 
 
 class EmbeddingDataModule(BaseDataModule):
-
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
 

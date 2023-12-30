@@ -1,9 +1,6 @@
 import torch
-from lightning import LightningDataModule
 
 from src.data.base_datamodule import BaseDataModule
-from .image_datamodule import ImageDataModule
-from safetensors.torch import load_file
 import json
 from typing import Optional, Tuple
 import random

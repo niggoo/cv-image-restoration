@@ -1,12 +1,6 @@
-import glob
-import json
 from typing import Any, Dict, Optional, Tuple
-import random
-import torch
-import torchvision
 from lightning import LightningDataModule
-from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
-from torchvision.io import ImageReadMode
+from torch.utils.data import DataLoader, Dataset
 
 
 class BaseDataModule(LightningDataModule):
@@ -43,12 +37,12 @@ class BaseDataModule(LightningDataModule):
 
     def __init__(
         self,
-            data_paths_json_path: str = "../data/data_paths.json",
-            data_split: Tuple[float, float, float] = (0.80, 0.1, 0.1),
-            batch_size: int = 8,
-            num_workers: int = 0,
-            pin_memory: bool = False,
-            persistent_workers: bool = True
+        data_paths_json_path: str = "../data/data_paths.json",
+        data_split: Tuple[float, float, float] = (0.80, 0.1, 0.1),
+        batch_size: int = 8,
+        num_workers: int = 0,
+        pin_memory: bool = False,
+        persistent_workers: bool = True,
     ) -> None:
         """Initialize a DataModule.
 

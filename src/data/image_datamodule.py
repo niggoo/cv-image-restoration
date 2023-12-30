@@ -1,11 +1,9 @@
-import glob
 import json
-from typing import Any, Dict, Optional, Tuple
+from typing import Optional, Tuple
 import random
 import torch
 import torchvision
-from lightning import LightningDataModule
-from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
+from torch.utils.data import Dataset
 from torchvision.io import ImageReadMode
 
 from src.data.base_datamodule import BaseDataModule
@@ -24,7 +22,9 @@ class ImageDataSet(Dataset):
     def get_all(self, idx):
         emb, gt = self.__getitem__(idx)
         # load the raw image
-        raw = torchvision.io.read_image(self.data_paths[idx]["raw_images"][0], ImageReadMode.GRAY ).float()
+        raw = torchvision.io.read_image(
+            self.data_paths[idx]["raw_images"][0], ImageReadMode.GRAY
+        ).float()
         # load parameters file
         with open(self.data_paths[idx]["parameters"]) as file:
             params = file.read()
@@ -50,20 +50,22 @@ class ImageDataSet(Dataset):
             .float()
         )
 
-        return (integral_images - self.mean) / self.std, gt / 255.0  # "normalize" to [0, 1]
+        return (
+            (integral_images - self.mean) / self.std
+        ) / 255.0, gt / 255.0  # "normalize" to [0, 1]
 
 
 class ImageDataModule(BaseDataModule):
     def __init__(
         self,
-            mean: float = None,
-            std: float = None,
-            data_paths_json_path: str = "../data/data_paths.json",
-            data_split: Tuple[float, float, float] = (0.80, 0.1, 0.1),
-            batch_size: int = 8,
-            num_workers: int = 0,
-            pin_memory: bool = False,
-            persistent_workers: bool = True
+        mean: float = None,
+        std: float = None,
+        data_paths_json_path: str = "../data/data_paths.json",
+        data_split: Tuple[float, float, float] = (0.80, 0.1, 0.1),
+        batch_size: int = 8,
+        num_workers: int = 0,
+        pin_memory: bool = False,
+        persistent_workers: bool = True,
     ) -> None:
         """Initialize a DataModule.
 
@@ -73,12 +75,17 @@ class ImageDataModule(BaseDataModule):
         :param num_workers: The number of workers. Defaults to `0`.
         :param pin_memory: Whether to pin memory. Defaults to `False`.
         """
-        super().__init__(data_paths_json_path, data_split, batch_size, num_workers, pin_memory, persistent_workers)
+        super().__init__(
+            data_paths_json_path,
+            data_split,
+            batch_size,
+            num_workers,
+            pin_memory,
+            persistent_workers,
+        )
 
         self.mean = mean
         self.std = std
-
-
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -102,9 +109,15 @@ class ImageDataModule(BaseDataModule):
         train_size = int(total_items * self.hparams.data_split[0])
         val_size = int(total_items * self.hparams.data_split[1])
 
-        self.data_train: Optional[Dataset] = ImageDataSet(data_paths[:train_size], self.mean, self.std)
-        self.data_val: Optional[Dataset] = ImageDataSet(data_paths[train_size : train_size + val_size], self.mean, self.std)
-        self.data_test: Optional[Dataset] = ImageDataSet(data_paths[train_size + val_size :], self.mean, self.std)
+        self.data_train: Optional[Dataset] = ImageDataSet(
+            data_paths[:train_size], self.mean, self.std
+        )
+        self.data_val: Optional[Dataset] = ImageDataSet(
+            data_paths[train_size : train_size + val_size], self.mean, self.std
+        )
+        self.data_test: Optional[Dataset] = ImageDataSet(
+            data_paths[train_size + val_size :], self.mean, self.std
+        )
 
         # Divide batch size by the number of devices.
         # Only useful for multiple GPUs, let it be or remove it

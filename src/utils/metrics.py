@@ -129,7 +129,6 @@ def normalize_prediction_robust(target, mask):
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.cuda.amp as amp
 import numpy as np
 
