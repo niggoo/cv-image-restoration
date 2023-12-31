@@ -124,8 +124,11 @@ class RestorationLitModule(LightningModule):
         restored = self.forward(x)
         if self.config.img_standardization.do_destandardize:
             restored = (
-                restored * self.config.img_standardization.std
+                restored * 255 * self.config.img_standardization.std
             ) + self.config.img_standardization.mean
+            # stats are calculated on unnormalized images
+            # so we need to destandardize *and* rescale
+            restored = restored / 255
 
         # check for nan values
         # just for debugging.

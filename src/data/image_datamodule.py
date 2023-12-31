@@ -52,7 +52,7 @@ class ImageDataSet(Dataset):
 
         return (
             (integral_images - self.mean) / self.std
-        ) / 255.0, gt / 255.0  # "normalize" to [0, 1]
+        ), gt / 255.0  # "normalize" to [0, 1]
 
 
 class ImageDataModule(BaseDataModule):
