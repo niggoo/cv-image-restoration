@@ -21,6 +21,7 @@ early_stopping:
   patience: 10
   min_delta: 0
 
+data_limit: 9223372036854775807 # sys.maxsize = 9223372036854775807
 
 # UNet
 img_standardization:

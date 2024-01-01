@@ -1,3 +1,4 @@
+import sys
 from typing import Any, Dict, Optional, Tuple
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
@@ -43,6 +44,7 @@ class BaseDataModule(LightningDataModule):
         num_workers: int = 0,
         pin_memory: bool = False,
         persistent_workers: bool = True,
+        data_limit: int = sys.maxsize
     ) -> None:
         """Initialize a DataModule.
 
@@ -67,6 +69,7 @@ class BaseDataModule(LightningDataModule):
         self.data_test: Optional[Dataset] = None
 
         self.batch_size_per_device = batch_size
+        self.data_limit = data_limit
 
     def prepare_data(self) -> None:
         """Download data if needed. Lightning ensures that `self.prepare_data()` is called only

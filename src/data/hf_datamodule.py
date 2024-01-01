@@ -1,3 +1,5 @@
+import sys
+
 import torch
 
 from src.data.base_datamodule import BaseDataModule
@@ -11,16 +13,16 @@ from transformers import AutoImageProcessor
 
 
 class HFDataSet(Dataset):
-    def __init__(
-        self, data_paths: dict, backbone_model_name: str = "facebook/dpt-dinov2-small-nyu"
-    ):
+    def __init__(self, data_paths: dict, backbone_model_name: str = "facebook/dpt-dinov2-small-nyu",
+                 data_limit: int = sys.maxsize):
         super().__init__()
         self.data_paths = data_paths
         self.processor = AutoImageProcessor.from_pretrained(backbone_model_name)
+        self.data_limit = data_limit
         # self.processor.crop_size = {"height": 512, "width": 512}
 
     def __len__(self):
-        return len(self.data_paths)
+        return min(len(self.data_paths), self.data_limit)
 
     def get_all(self, idx):
         emb, gt = self.__getitem__(idx)
@@ -68,7 +70,8 @@ class HFImageDataModule(BaseDataModule):
             batch_size: int = 8,
             num_workers: int = 0,
             pin_memory: bool = False,
-            persistent_workers: bool = True
+            persistent_workers: bool = True,
+            data_limit: int = sys.maxsize
     ) -> None:
         """Initialize a DataModule.
 
@@ -78,7 +81,7 @@ class HFImageDataModule(BaseDataModule):
         :param num_workers: The number of workers. Defaults to `0`.
         :param pin_memory: Whether to pin memory. Defaults to `False`.
         """
-        super().__init__(data_paths_json_path, data_split, batch_size, num_workers, pin_memory, persistent_workers)
+        super().__init__(data_paths_json_path, data_split, batch_size, num_workers, pin_memory, persistent_workers, data_limit)
 
         self.backbone_model_name = backbone_model_name
 
@@ -105,12 +108,20 @@ class HFImageDataModule(BaseDataModule):
         train_size = int(total_items * self.hparams.data_split[0])
         val_size = int(total_items * self.hparams.data_split[1])
 
-        self.data_train: Optional[Dataset] = HFDataSet(data_paths[:train_size], self.backbone_model_name)
+        self.data_train: Optional[Dataset] = HFDataSet(
+            data_paths[:train_size],
+            self.backbone_model_name,
+            self.data_limit
+        )
         self.data_val: Optional[Dataset] = HFDataSet(
-            data_paths[train_size : train_size + val_size]
+            data_paths[train_size : train_size + val_size],
+            self.backbone_model_name,
+            self.data_limit
         )
         self.data_test: Optional[Dataset] = HFDataSet(
-            data_paths[train_size + val_size :]
+            data_paths[train_size + val_size :],
+            self.backbone_model_name,
+            self.data_limit
         )
 
         # Divide batch size by the number of devices.

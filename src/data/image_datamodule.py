@@ -1,4 +1,5 @@
 import json
+import sys
 from typing import Optional, Tuple
 import random
 import torch
@@ -10,14 +11,15 @@ from src.data.base_datamodule import BaseDataModule
 
 
 class ImageDataSet(Dataset):
-    def __init__(self, data_paths: dict, mean, std):
+    def __init__(self, data_paths: dict, mean, std, data_limit:int = sys.maxsize):
         super().__init__()
         self.data_paths = data_paths
         self.mean = mean
         self.std = std
+        self.data_limit = data_limit
 
     def __len__(self):
-        return len(self.data_paths)
+        return min(len(self.data_paths), self.data_limit)
 
     def get_all(self, idx):
         emb, gt = self.__getitem__(idx)
@@ -58,14 +60,15 @@ class ImageDataSet(Dataset):
 class ImageDataModule(BaseDataModule):
     def __init__(
         self,
-        mean: float = None,
-        std: float = None,
+        mean: float,
+        std: float,
         data_paths_json_path: str = "../data/data_paths.json",
         data_split: Tuple[float, float, float] = (0.80, 0.1, 0.1),
         batch_size: int = 8,
         num_workers: int = 0,
         pin_memory: bool = False,
         persistent_workers: bool = True,
+        data_limit: int = sys.maxsize
     ) -> None:
         """Initialize a DataModule.
 
@@ -82,6 +85,7 @@ class ImageDataModule(BaseDataModule):
             num_workers,
             pin_memory,
             persistent_workers,
+            data_limit
         )
 
         self.mean = mean
@@ -110,13 +114,13 @@ class ImageDataModule(BaseDataModule):
         val_size = int(total_items * self.hparams.data_split[1])
 
         self.data_train: Optional[Dataset] = ImageDataSet(
-            data_paths[:train_size], self.mean, self.std
+            data_paths[:train_size], self.mean, self.std, self.data_limit
         )
         self.data_val: Optional[Dataset] = ImageDataSet(
-            data_paths[train_size : train_size + val_size], self.mean, self.std
+            data_paths[train_size : train_size + val_size], self.mean, self.std, self.data_limit
         )
         self.data_test: Optional[Dataset] = ImageDataSet(
-            data_paths[train_size + val_size :], self.mean, self.std
+            data_paths[train_size + val_size :], self.mean, self.std, self.data_limit
         )
 
         # Divide batch size by the number of devices.

@@ -14,6 +14,10 @@ test: false       # false in YAML represents False in Python
 pin_memory: false # false in YAML represents False in Python
 
 
+data_limit: 9223372036854775807 # sys.maxsize = 9223372036854775807
+
+
+
 datamodule: "EmbeddingDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
 model: "ModifiedConvHead" # "UNet", "ModifiedConvHead", ("DPT")
 backbone_size: "small"  # small, base, large

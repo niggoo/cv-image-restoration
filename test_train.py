@@ -1,4 +1,5 @@
 import os
+import sys
 
 import hydra
 import lightning as L
@@ -183,6 +184,7 @@ class ImageLoggingCallback(Callback):
 
 
 def get_datamodule(config):
+    data_limit = config.data_limit if config.data_limit is not None else sys.maxsize
     if config.datamodule == "ImageDataModule":
         # XXX: difference betwen ImageDataModule and HFImageDataModule:
         # HF uses HuggingFace a pretrained model and normalizes using a processor
@@ -194,6 +196,7 @@ def get_datamodule(config):
             batch_size=config.batch_size,
             num_workers=config.num_workers,
             pin_memory=config.pin_memory,
+            data_limit=data_limit
         )
     elif config.datamodule == "EmbeddingDataModule":
         return EmbeddingDataModule(
@@ -201,6 +204,7 @@ def get_datamodule(config):
             batch_size=config.batch_size,
             num_workers=config.num_workers,
             pin_memory=config.pin_memory,
+            data_limit=data_limit
         )
     elif config.datamodule == "HFImageDataModule":
         return HFImageDataModule(
@@ -209,6 +213,7 @@ def get_datamodule(config):
             batch_size=config.batch_size,
             num_workers=config.num_workers,
             pin_memory=config.pin_memory,
+            data_limit=data_limit
         )
     else:
         raise ValueError(f"Unknown datamodule parameter given: {config.datamodule}!")
