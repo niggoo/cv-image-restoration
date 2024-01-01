@@ -71,6 +71,7 @@ class HFImageDataModule(BaseDataModule):
             num_workers: int = 0,
             pin_memory: bool = False,
             persistent_workers: bool = True,
+            oversample: bool = False,
             data_limit: int = sys.maxsize
     ) -> None:
         """Initialize a DataModule.
@@ -81,9 +82,11 @@ class HFImageDataModule(BaseDataModule):
         :param num_workers: The number of workers. Defaults to `0`.
         :param pin_memory: Whether to pin memory. Defaults to `False`.
         """
-        super().__init__(data_paths_json_path, data_split, batch_size, num_workers, pin_memory, persistent_workers, data_limit)
+        super().__init__(data_paths_json_path, data_split, batch_size, num_workers, pin_memory, persistent_workers, oversample, data_limit)
 
         self.backbone_model_name = backbone_model_name
+
+        self.oversample = oversample
 
 
     def setup(self, stage: Optional[str] = None) -> None:

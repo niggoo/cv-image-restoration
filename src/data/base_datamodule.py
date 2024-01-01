@@ -46,6 +46,7 @@ class BaseDataModule(LightningDataModule):
         num_workers: int = 0,
         pin_memory: bool = False,
         persistent_workers: bool = True,
+        oversample: bool = False,
         data_limit: int = sys.maxsize
     ) -> None:
         """Initialize a DataModule.
@@ -73,6 +74,8 @@ class BaseDataModule(LightningDataModule):
         self.batch_size_per_device = batch_size
         self.data_limit = data_limit
 
+        self.oversample = oversample
+
     def prepare_data(self) -> None:
         """Download data if needed. Lightning ensures that `self.prepare_data()` is called only
         within a single process on CPU, so you can safely add your downloading logic within. In
@@ -96,12 +99,12 @@ class BaseDataModule(LightningDataModule):
 
         pass
 
-    def train_dataloader(self, oversample: bool = False) -> DataLoader[Any]:
+    def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
 
         :return: The train dataloader.
         """
-        if oversample:
+        if self.oversample:
             train_size = len(self.data_train)
             # Tensor for holding the poses of the samples in the correct order
             poses = torch.zeros(train_size)

@@ -85,6 +85,7 @@ class ImageDataModule(BaseDataModule):
         num_workers: int = 0,
         pin_memory: bool = False,
         persistent_workers: bool = True,
+        oversample: bool = False,
         data_limit: int = sys.maxsize
     ) -> None:
         """Initialize a DataModule.
@@ -102,11 +103,14 @@ class ImageDataModule(BaseDataModule):
             num_workers,
             pin_memory,
             persistent_workers,
+            oversample,
             data_limit
         )
 
         self.mean = mean
         self.std = std
+
+        self.oversample = oversample
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
