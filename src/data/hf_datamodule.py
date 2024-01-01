@@ -124,6 +124,8 @@ class HFImageDataModule(BaseDataModule):
             self.data_limit
         )
 
+        self.data_paths = data_paths
+
         # Divide batch size by the number of devices.
         # Only useful for multiple GPUs, let it be or remove it
         if self.trainer is not None:

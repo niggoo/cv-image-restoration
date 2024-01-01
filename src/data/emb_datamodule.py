@@ -66,7 +66,6 @@ class EmbeddingDataModule(BaseDataModule):
         :param stage: The stage to setup. Either `"fit"`, `"validate"`, `"test"`, or `"predict"`. Defaults to ``None``.
         """
 
-        data_paths = []
         with open(self.data_paths_json_path) as file:
             data_paths = json.load(file)
 
@@ -89,6 +88,8 @@ class EmbeddingDataModule(BaseDataModule):
             data_paths[train_size + val_size :],
             self.data_limit
         )
+
+        self.data_paths = data_paths
 
         # Divide batch size by the number of devices.
         # Only useful for multiple GPUs, let it be or remove it

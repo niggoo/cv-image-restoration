@@ -1,7 +1,9 @@
 import sys
 from typing import Any, Dict, Optional, Tuple
 from lightning import LightningDataModule
+import torch
 from torch.utils.data import DataLoader, Dataset
+import re
 
 
 class BaseDataModule(LightningDataModule):
@@ -94,17 +96,53 @@ class BaseDataModule(LightningDataModule):
 
         pass
 
-    def train_dataloader(self) -> DataLoader[Any]:
+    def train_dataloader(self, oversample: bool = False) -> DataLoader[Any]:
         """Create and return the train dataloader.
 
         :return: The train dataloader.
         """
+        if oversample:
+            train_size = len(self.data_train)
+            # Tensor for holding the poses of the samples in the correct order
+            poses = torch.zeros(train_size)
+
+            # Convert pose to integer
+            pose2id = {
+                "no person": 0,
+                "idle": 1,
+                "laying": 2,
+                "sitting": 3
+            }
+            # Regex for extracting the pose
+            pose_reg = re.compile(r"person shape =  (.*)\n")
+
+            # Iterate samples and extract pose from parameter file
+            for p, path in enumerate(self.data_paths[:train_size]):
+                with open(path["parameters"]) as file:
+                    params = file.read()
+
+                # If there is no person, the file does not contain "person shape" ==> keep index at 0
+                if "person shape" in params:
+                    pose = pose_reg.search(params).group(1)
+                    poses[p] = pose2id[pose]
+            
+            # Get pose frequencies
+            _, ids, counts = torch.unique(poses, return_counts=True, return_inverse=True)
+            # Invert frequencies and get the weight for every sample
+            # Every class should sum up to 1
+            sample_weights = (1 / counts)[ids] 
+
+            sampler = torch.utils.data.sampler.WeightedRandomSampler(sample_weights, len(sample_weights), replacement=True)
+        else:
+            sampler = None
+
+        # When sampler is used, shuffle is invalid
         return DataLoader(
             dataset=self.data_train,
             batch_size=self.batch_size_per_device,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
-            shuffle=True,
+            sampler=sampler,
         )
 
     def val_dataloader(self) -> DataLoader[Any]:
