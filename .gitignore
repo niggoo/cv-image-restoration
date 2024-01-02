@@ -10,3 +10,4 @@ downloaded/
 *.png
 transformers/**
 wandb/**
+test_train.py
