@@ -1,9 +1,11 @@
+import sys
+
 import torch
 
-from .image_datamodule import ImageDataModule
+from src.data.base_datamodule import BaseDataModule
 from safetensors.torch import load_file
 import json
-from typing import Optional, Tuple
+from typing import Optional
 import random
 import torchvision
 from torch.utils.data import Dataset, random_split
@@ -11,12 +13,13 @@ from torchvision.io import ImageReadMode
 
 
 class EmbeddingDataSet(Dataset):
-    def __init__(self, data_paths: dict):
+    def __init__(self, data_paths: dict, data_limit: int = sys.maxsize):
         super().__init__()
         self.data_paths = data_paths
+        self.data_limit = data_limit
 
     def __len__(self):
-        return len(self.data_paths)
+        return min(len(self.data_paths), self.data_limit)
 
     def get_all(self, idx):
         emb, gt = self.__getitem__(idx)
@@ -51,11 +54,7 @@ class EmbeddingDataSet(Dataset):
         return embeddings, gt / 255.0  # "normalize" to [0, 1]
 
 
-class EmbeddingDataModule(ImageDataModule):
-    """
-    only override the setup method
-    """
-
+class EmbeddingDataModule(BaseDataModule):
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
 
@@ -67,7 +66,6 @@ class EmbeddingDataModule(ImageDataModule):
         :param stage: The stage to setup. Either `"fit"`, `"validate"`, `"test"`, or `"predict"`. Defaults to ``None``.
         """
 
-        data_paths = []
         with open(self.data_paths_json_path) as file:
             data_paths = json.load(file)
 
@@ -78,13 +76,20 @@ class EmbeddingDataModule(ImageDataModule):
         train_size = int(total_items * self.hparams.data_split[0])
         val_size = int(total_items * self.hparams.data_split[1])
 
-        self.data_train: Optional[Dataset] = EmbeddingDataSet(data_paths[:train_size])
+        self.data_train: Optional[Dataset] = EmbeddingDataSet(
+            data_paths[:train_size],
+            self.data_limit
+        )
         self.data_val: Optional[Dataset] = EmbeddingDataSet(
-            data_paths[train_size : train_size + val_size]
+            data_paths[train_size : train_size + val_size],
+            self.data_limit
         )
         self.data_test: Optional[Dataset] = EmbeddingDataSet(
-            data_paths[train_size + val_size :]
+            data_paths[train_size + val_size :],
+            self.data_limit
         )
+
+        self.data_paths = data_paths
 
         # Divide batch size by the number of devices.
         # Only useful for multiple GPUs, let it be or remove it

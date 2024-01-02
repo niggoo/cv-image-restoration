@@ -11,3 +11,5 @@ downloaded/
 transformers/**
 wandb/**
 test_train.py
+outputs/**
+.vscode/**
