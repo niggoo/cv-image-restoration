@@ -13,7 +13,7 @@ from transformers import AutoImageProcessor
 
 
 class HFDataSet(Dataset):
-    def __init__(self, data_paths: dict, backbone_model_name: str = "facebook/dpt-dinov2-small-nyu",
+    def __init__(self, data_paths: dict, backbone_model_name: str = "facebook/dinov2-small",
                  data_limit: int = sys.maxsize):
         super().__init__()
         self.data_paths = data_paths

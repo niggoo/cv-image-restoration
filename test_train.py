@@ -24,6 +24,8 @@ from src.data.image_datamodule import ImageDataModule
 from src.model.dinov2.conv_decoder import ModifiedConvHead
 from src.model.restoration_module import RestorationLitModule
 from src.model.unet.unet import UNet
+from src.model.dinov2.dinov2 import Dinov2
+from src.model.dinov2.dpt import DPT
 from test_plot import plot_images, plot_pred_image
 
 DINO_SIZE_MAP = {
@@ -108,6 +110,7 @@ def main(cfg: DictConfig):
 def init_wandb(config):
     logger = WandbLogger(
         project=config.wandb.project,
+        entity=config.wandb.entity,
         group=config.wandb.group,
         notes=config.wandb.notes,
         config=OmegaConf.to_container(config),  # this logs all hyperparameters for us
@@ -122,6 +125,10 @@ def get_model(config):
         return UNet()
     elif config.model == "ModifiedConvHead":
         return ModifiedConvHead(in_channels=DINO_SIZE_MAP[config.backbone_size])
+    elif config.model == "DPT":
+        dino = Dinov2()
+        dpt = DPT()
+        return torch.nn.ModuleList([dino, dpt])
 
 
 class ImageLoggingCallback(Callback):
@@ -220,7 +227,8 @@ def get_datamodule(config):
             num_workers=config.num_workers,
             pin_memory=config.pin_memory,
             data_limit=data_limit,
-            oversample=config.data.oversample,        )
+            oversample=config.data.oversample,
+        )
     else:
         raise ValueError(f"Unknown datamodule parameter given: {config.datamodule}!")
 

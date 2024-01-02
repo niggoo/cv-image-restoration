@@ -1,7 +1,7 @@
-description: "Restores air-images of person in a forest using pre-computed DinoV2 Embeddings"
+description: "Restores air-images of person in a forest using Dinov2 Encoder and DPT Decoder"
 
 # Training parameters
-batch_size: 192
+batch_size: 8
 grad_accum_steps: 1
 n_epochs: 150
 max_grad_norm: 0.0
@@ -15,16 +15,17 @@ pin_memory: false
 
 device:
   type: "cuda" # "cuda", "cpu"; null means auto-select cuda if available, else cpu
-  ids: [1,2,3] # [0], [0,1,2,3], [1,2,3]; null means auto-select all available GPUs
+  ids: [0] # [0], [0,1,2,3], [1,2,3]; null means auto-select all available GPUs
 
 data:
   limit: null # sys.maxsize = 9223372036854775807
   oversample: true
 
-datamodule: "EmbeddingDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
-model: "ModifiedConvHead" # "UNet", "ModifiedConvHead", ("DPT")
+datamodule: "HFImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
+backbone_model_name:
+model: "DPT" # "UNet", "ModifiedConvHead", ("DPT")
 backbone_size: "small"  # small, base, large
-# 
+#
 early_stopping:
   patience: 50
   min_delta: 0
@@ -36,6 +37,6 @@ img_standardization:
 wandb:
   project: "CV2023-share"
   entity: "cv2023-a6"
-  group: "DINO ModifiedConvHead"
-  notes: "Testing DINO with ModifiedConvHead"
+  group: "DINO DPT"
+  notes: "Testing DINO with DPT"
   experiment_name: "Small 1e-3"

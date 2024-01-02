@@ -43,6 +43,7 @@ backbone_model_name: "facebook/dpt-dinov2-small-nyu"
 
 wandb:
   project: "CV2023-share"
+  entity: "cv2023-a6"
   group: "UNet"
   notes: "Testing UNet baselines!"
   experiment_name: "UNet standardization"

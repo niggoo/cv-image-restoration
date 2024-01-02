@@ -401,9 +401,9 @@ class DPT(nn.Module):
 
     def __init__(
         self,
-        embed_dims=768,
-        channels=96,
-        post_process_channels=[96, 192, 384, 768],
+        embed_dims=384,
+        channels=48,
+        post_process_channels=[48, 96, 192, 384],
         expand_channels=False,
         **kwargs,
     ):
