@@ -28,6 +28,10 @@ early_stopping:
 data:
   limit: null # sys.maxsize = 9223372036854775807
   oversample: false
+
+loss:
+  use_msge: false 
+  msge_weight: 1.0
   
 # UNet
 img_standardization:
