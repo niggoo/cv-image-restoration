@@ -33,7 +33,7 @@ DINO_SIZE_MAP = {
 }
 
 
-@hydra.main(version_base=None, config_path="./configs/", config_name="unet")
+@hydra.main(version_base=None, config_path="./configs/", config_name="dino")
 def main(cfg: DictConfig):
     config = cfg
     # set seeds for numpy, torch and python.random
@@ -83,7 +83,6 @@ def main(cfg: DictConfig):
     trainer = L.Trainer(
         max_epochs=config.n_epochs,
         logger=wandb_logger,
-        accelerator=device,
         callbacks=[
             lr_monitor,
             checkpoint_callback,
@@ -95,7 +94,8 @@ def main(cfg: DictConfig):
         gradient_clip_val=config.max_grad_norm,  # 0. means no clipping
         accumulate_grad_batches=config.grad_accum_steps,
         log_every_n_steps=50,
-        devices=-1 if device == "gpu" else None,
+        accelerator=config.device.type or device,
+        devices=config.device.ids or None,
     )
     # start training
     trainer.fit(pl_module, datamodule=datamodule, ckpt_path=config.checkpoint)
@@ -184,19 +184,24 @@ class ImageLoggingCallback(Callback):
 
 
 def get_datamodule(config):
-    data_limit = config.data_limit if config.data_limit is not None else sys.maxsize
+    data_limit = config.data.limit if config.data.limit is not None else sys.maxsize
     if config.datamodule == "ImageDataModule":
         # XXX: difference betwen ImageDataModule and HFImageDataModule:
         # HF uses HuggingFace a pretrained model and normalizes using a processor
         # ImageDataModule uses the provided mean and std to normalize, calculated on the train set
         return ImageDataModule(
-            mean=config.img_standardization.mean if config.img_standardization.do_destandardize else 0,
-            std=config.img_standardization.std if config.img_standardization.do_destandardize else 1,
+            mean=config.img_standardization.mean
+            if config.img_standardization.do_destandardize
+            else 0,
+            std=config.img_standardization.std
+            if config.img_standardization.do_destandardize
+            else 1,
             data_paths_json_path="src/data/data_paths.json",
             batch_size=config.batch_size,
             num_workers=config.num_workers,
             pin_memory=config.pin_memory,
-            data_limit=data_limit
+            data_limit=data_limit,
+            oversample=config.data.oversample,
         )
     elif config.datamodule == "EmbeddingDataModule":
         return EmbeddingDataModule(
@@ -204,7 +209,8 @@ def get_datamodule(config):
             batch_size=config.batch_size,
             num_workers=config.num_workers,
             pin_memory=config.pin_memory,
-            data_limit=data_limit
+            data_limit=data_limit,
+            oversample=config.data.oversample,
         )
     elif config.datamodule == "HFImageDataModule":
         return HFImageDataModule(
@@ -213,41 +219,10 @@ def get_datamodule(config):
             batch_size=config.batch_size,
             num_workers=config.num_workers,
             pin_memory=config.pin_memory,
-            data_limit=data_limit
-        )
+            data_limit=data_limit,
+            oversample=config.data.oversample,        )
     else:
         raise ValueError(f"Unknown datamodule parameter given: {config.datamodule}!")
-
-
-class ConservativeEarlyStopping(EarlyStopping):
-    """Only stop if *all* processes want to stop, not only 1"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def _run_early_stopping_check(self, trainer) -> None:
-        """Checks whether the early stopping condition is met and if so tells the trainer to stop the training."""
-        logs = trainer.callback_metrics
-
-        if (
-            trainer.fast_dev_run
-            or not self._validate_condition_metric(  # disable early_stopping with fast_dev_run
-                logs
-            )
-        ):  # short circuit if metric not present
-            return
-
-        current = logs[self.monitor].squeeze()
-        should_stop, reason = self._evaluate_stopping_criteria(current)
-
-        # stop every ddp process if any world process decides to stop
-        # CHANGED: all = True
-        should_stop = trainer.strategy.reduce_boolean_decision(should_stop, all=True)
-        trainer.should_stop = trainer.should_stop or should_stop
-        if should_stop:
-            self.stopped_epoch = trainer.current_epoch
-        if reason and self.verbose:
-            self._log_info(trainer, reason, self.log_rank_zero_only)
 
 
 if __name__ == "__main__":
@@ -255,4 +230,5 @@ if __name__ == "__main__":
     # some example commands:
     # python3 test_train.py config-name=unet
     # python3 test_train.py config-name=unet img_standardization.mean=100 learning_rate=0.0001
-    # CUDA_VISIBLE_DEVICES=1,2,3 python3 test_train.py --config-name=dino
+    # python3 test_train.py --config-name=dino
+    # python3 test_train.py --config-name=dino 'wandb.experiment_name=Small 1e-3, oversample'
