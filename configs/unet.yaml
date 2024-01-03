@@ -5,7 +5,7 @@ batch_size: 6
 grad_accum_steps: 1
 n_epochs: 150
 max_grad_norm: 0.0
-learning_rate: 0.001
+learning_rate: 0.0001
 
 # Miscellaneous
 num_workers: 0
@@ -30,9 +30,9 @@ data:
   oversample: false
 
 loss:
-  use_msge: false 
+  use_msge: false
   msge_weight: 1.0
-  
+
 # UNet
 img_standardization:
   do_standardize: true
