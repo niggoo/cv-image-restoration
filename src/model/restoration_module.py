@@ -8,6 +8,8 @@ from torchmetrics.image import PeakSignalNoiseRatio
 from torchmetrics.image import StructuralSimilarityIndexMeasure
 from einops import rearrange
 
+from src.utils.metrics import MSGE
+
 
 class RestorationLitModule(LightningModule):
     """Example of a `LightningModule` for MNIST classification.
@@ -70,7 +72,8 @@ class RestorationLitModule(LightningModule):
         self.config = config
 
         # loss function
-        self.loss_fn = nn.MSELoss()
+        self.mse = nn.MSELoss()
+        self.msge = MSGE()
 
         # metric objects for calculating and averaging across batches
         self.train_psnr = PeakSignalNoiseRatio(data_range=1)
@@ -141,7 +144,12 @@ class RestorationLitModule(LightningModule):
         # mask = torch.where(
         #     gt == 0, torch.tensor(0.0).to(gt.device), torch.tensor(1.0).to(gt.device)
         # ).to(gt.device).bool()
-        loss = self.loss_fn(restored, gt)
+        mse = self.mse(restored, gt)
+        if self.config.loss.use_msge:
+            msge = self.msge(restored, gt)
+            loss = mse + self.config.loss.msge_weight * msge
+        else:
+            loss = mse
         return loss, restored, gt
 
     def training_step(
@@ -163,9 +171,30 @@ class RestorationLitModule(LightningModule):
             self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets)
         )
 
-        self.log("train/loss", mloss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        self.log("train/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        self.log("train/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log(
+            "train/loss",
+            mloss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+        self.log(
+            "train/psnr",
+            mpsnr,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+        self.log(
+            "train/ssim",
+            ssim,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
 
         # return loss or backpropagation will fail
         return loss
@@ -192,9 +221,30 @@ class RestorationLitModule(LightningModule):
             self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets)
         )
 
-        self.log("val/loss", mloss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        self.log("val/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        self.log("val/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log(
+            "val/loss",
+            mloss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+        self.log(
+            "val/psnr",
+            mpsnr,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+        self.log(
+            "val/ssim",
+            ssim,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
 
     def on_validation_epoch_end(self) -> None:
         "Lightning hook that is called when a validation epoch ends."
@@ -229,9 +279,30 @@ class RestorationLitModule(LightningModule):
             self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets)
         )
 
-        self.log("test/loss", mloss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        self.log("test/psnr", mpsnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        self.log("test/ssim", ssim, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log(
+            "test/loss",
+            mloss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+        self.log(
+            "test/psnr",
+            mpsnr,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+        self.log(
+            "test/ssim",
+            ssim,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
 
     def rearrange_for_ssim(self, data):
         # dino-based models come out with a different shape.
