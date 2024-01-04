@@ -22,7 +22,7 @@ data:
   oversample: true
 
 datamodule: "HFImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
-backbone_model_name:
+backbone_model_name: "facebook/dinov2-small"
 model: "DPT" # "UNet", "ModifiedConvHead", ("DPT")
 backbone_size: "small"  # small, base, large
 #

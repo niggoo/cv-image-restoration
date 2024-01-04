@@ -1,4 +1,4 @@
-torch==1.10.0
+torch
 torchvision
 wandb
 hydra-core
@@ -6,3 +6,4 @@ lightning
 transformers
 safetensors
 pillow
+rich
