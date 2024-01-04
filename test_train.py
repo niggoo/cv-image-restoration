@@ -62,7 +62,7 @@ def main(cfg: DictConfig):
         model=net,
     )
     # create monitor to keep track of learning rate - we want to check the behaviour of our learning rate schedule
-    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    lr_monitor = LearningRateMonitor(logging_interval="epoch")
     # sets Checkpointing dependency to loss -> we keep the best 2 model according to loss
     checkpoint_callback = ModelCheckpoint(
         monitor="val/loss", every_n_epochs=1, save_last=True, save_top_k=1
@@ -102,9 +102,8 @@ def main(cfg: DictConfig):
     # start training
     trainer.fit(pl_module, datamodule=datamodule, ckpt_path=config.checkpoint)
 
-    # TODO: optionally, test the model
-    # FIXME @Noah!
-    # but how to do this best with lightning?
+    # test trained model
+    trainer.test(datamodule=datamodule, ckpt_path="best")
 
 
 def init_wandb(config):
@@ -240,4 +239,3 @@ if __name__ == "__main__":
     # python3 test_train.py config-name=unet img_standardization.mean=100 learning_rate=0.0001
     # python3 test_train.py --config-name=dino
     # python3 test_train.py --config-name=dino 'wandb.experiment_name=Small 1e-3, oversample'
-

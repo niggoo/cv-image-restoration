@@ -91,6 +91,8 @@ class RestorationLitModule(LightningModule):
         # for tracking best so far validation Metric
         self.val_psnr_best = MaxMetric()
         self.val_ssim_best = MaxMetric()
+        self.test_psnr_best = MaxMetric()
+        self.test_ssim_best = MaxMetric()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Perform a forward pass through the models
@@ -273,8 +275,8 @@ class RestorationLitModule(LightningModule):
         loss, preds, targets = self.model_step(batch)
 
         # update and log metrics
-        mloss = self.train_test(loss)
-        mpsnr = self.train_test(preds, targets)
+        mloss = self.test_loss(loss)
+        mpsnr = self.test_psnr(preds, targets)
         ssim = self.test_ssim(
             self.rearrange_for_ssim(preds), self.rearrange_for_ssim(targets)
         )
@@ -313,7 +315,24 @@ class RestorationLitModule(LightningModule):
 
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
-        pass
+        psnr = self.val_psnr.compute()  # get current val psnr
+        self.test_psnr_best(psnr)  # update best so far val psnr
+        ssim = self.test_ssim.compute()  # get current val ssim
+        self.test_ssim_best(ssim)  # update best so far val ssim
+        # log `val_psnr_best` as a value through `.compute()` method, instead of as a metric object
+        # otherwise metric would be reset by lightning after each epoch
+        self.log(
+            "test/psnr_best",
+            self.test_psnr_best.compute(),
+            sync_dist=True,
+            prog_bar=True,
+        )
+        self.log(
+            "test/ssim_best",
+            self.test_ssim_best.compute(),
+            sync_dist=True,
+            prog_bar=True,
+        )
 
     def setup(self, stage: str) -> None:
         """Lightning hook that is called at the beginning of fit (train + validate), validate,

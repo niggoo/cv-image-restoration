@@ -2,7 +2,7 @@ torch==1.10.0
 torchvision
 wandb
 hydra-core
-lightning
+lightning==1.9.0
 transformers
 safetensors
 pillow
