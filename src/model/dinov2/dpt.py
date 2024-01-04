@@ -453,7 +453,7 @@ class DPT(nn.Module):
 
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    module = DPTHead(embed_dims=384, post_process_channels=[48, 96, 192, 384]).to(device)
+    module = DPT(embed_dims=384, post_process_channels=[48, 96, 192, 384]).to(device)
     mock = [(torch.rand((4, 384, 32, 32)).to(device), torch.rand(4, 384)) for _ in range(4)]
     # torchinfo.summary(module, mock[0].shape)
     mock = module(mock)

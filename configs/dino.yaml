@@ -28,6 +28,7 @@ loss:
 datamodule: "EmbeddingDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
 model: "ModifiedConvHead" # "UNet", "ModifiedConvHead", ("DPT")
 backbone_size: "small"  # small, base, large
+residual: "False"
 # 
 early_stopping:
   patience: 50

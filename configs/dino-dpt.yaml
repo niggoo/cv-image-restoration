@@ -5,13 +5,14 @@ batch_size: 8
 grad_accum_steps: 1
 n_epochs: 150
 max_grad_norm: 0.0
-learning_rate: 0.001
+learning_rate: 0.0001
 
 # Miscellaneous
-num_workers: 0
+num_workers: 2
 checkpoint: null  # null in YAML represents None in Python
 test: false       # false in YAML represents False in Python
 pin_memory: false
+precision: "16-mixed"
 
 device:
   type: "cuda" # "cuda", "cpu"; null means auto-select cuda if available, else cpu
@@ -19,13 +20,18 @@ device:
 
 data:
   limit: null # sys.maxsize = 9223372036854775807
-  oversample: true
+  oversample: false
 
-datamodule: "HFImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
-backbone_model_name: "facebook/dinov2-small"
+datamodule: "DPTImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
+
 model: "DPT" # "UNet", "ModifiedConvHead", ("DPT")
 backbone_size: "small"  # small, base, large
-#
+residual: True # if to learn the residual and not the gt
+
+loss:
+  use_msge: false
+  msge_weight: 1.0
+
 early_stopping:
   patience: 50
   min_delta: 0

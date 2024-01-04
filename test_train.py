@@ -21,6 +21,7 @@ from torchinfo import summary
 from src.data.emb_datamodule import EmbeddingDataModule
 from src.data.hf_datamodule import HFImageDataModule
 from src.data.image_datamodule import ImageDataModule
+from src.data.dpt_datamodule import DptImageDataModule
 from src.model.dinov2.conv_decoder import ModifiedConvHead
 from src.model.restoration_module import RestorationLitModule
 from src.model.unet.unet import UNet
@@ -92,12 +93,13 @@ def main(cfg: DictConfig):
             early_stop_callback,
         ],
         default_root_dir=None,  # change dirc if needed
-        precision="32",  # 32 is full precision, maybe we need
+        precision=cfg.precision if hasattr(cfg, "precision") else "32",  # 32 is full precision, Dino was trained in 16
         gradient_clip_val=config.max_grad_norm,  # 0. means no clipping
         accumulate_grad_batches=config.grad_accum_steps,
         log_every_n_steps=50,
         accelerator=config.device.type or device,
         devices=config.device.ids or None,
+        num_sanity_val_steps=0,
     )
     # start training
     trainer.fit(pl_module, datamodule=datamodule, ckpt_path=config.checkpoint)
@@ -129,7 +131,7 @@ def get_model(config):
     elif config.model == "DPT":
         dino = Dinov2()
         dpt = DPT()
-        return torch.nn.ModuleList([dino, dpt])
+        return torch.nn.Sequential(dino, dpt)
 
 
 class ImageLoggingCallback(Callback):
@@ -215,6 +217,15 @@ def get_datamodule(config):
     elif config.datamodule == "HFImageDataModule":
         return HFImageDataModule(
             backbone_model_name=config.backbone_model_name,
+            data_paths_json_path="src/data/data_paths.json",
+            batch_size=config.batch_size,
+            num_workers=config.num_workers,
+            pin_memory=config.pin_memory,
+            data_limit=data_limit,
+            oversample=config.data.oversample,
+        )
+    elif config.datamodule == "DPTImageDataModule":
+        return DptImageDataModule(
             data_paths_json_path="src/data/data_paths.json",
             batch_size=config.batch_size,
             num_workers=config.num_workers,
