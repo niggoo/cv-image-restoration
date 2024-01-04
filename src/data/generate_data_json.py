@@ -1,5 +1,20 @@
 from pathlib import Path
 import json
+from argparse import ArgumentParser
+from tqdm import tqdm
+
+
+def opts_parser():
+    usage =\
+        """Convert audio-files to Encodec embeddings
+        """
+    parser = ArgumentParser(description=usage)
+    parser.add_argument('raw_dir', help='directory to the raw image files')
+    parser.add_argument('integral_dir', help='directory to the integral image files')
+    parser.add_argument('emb_dir', help='directory to the dino embeddings')
+    parser.add_argument('-emb', action='store_true', help='if to also process embeddings')
+
+    return parser
 
 
 def generate_data_paths_dict(
@@ -15,7 +30,7 @@ def generate_data_paths_dict(
 
     # setup dict using integral files
     data_paths = {}
-    for int_image in integral_files:
+    for int_image in tqdm(integral_files):
         batch_part = Path("/".join(int_image.parent.parts[-3:-1])).__str__()
         file_name = int_image.name
         image_focal_plane = float(int_image.stem.split("_")[-1][2:])
@@ -31,7 +46,7 @@ def generate_data_paths_dict(
         if image_focal_plane in focal_planes:
             data_paths[batch_part][image_id]["integral_images"].append(file_str)
 
-    for embedd in embedding_files:
+    for embedd in tqdm(embedding_files):
         batch_part = Path("/".join(embedd.parent.parts[-3:-1])).__str__()
         file_name = embedd.name
         image_focal_plane = float(embedd.stem.split("_")[-1][2:])
@@ -48,7 +63,7 @@ def generate_data_paths_dict(
             data_paths[batch_part][image_id]["embeddings"].append(file_str)
 
     # add raw images to dict
-    for raw_file in raw_files:
+    for raw_file in tqdm(raw_files):
         batch_part = Path("/".join(raw_file.parent.parts[-2:])).__str__()
         file_name = raw_file.name
         image_id = "_".join(file_name.split("_")[0:2])
@@ -75,7 +90,7 @@ def generate_data_paths_dict(
             # check if all the keys are there (raw images, GT, parameters, integral images)
             # are here and only continue if there are 5 keys
             keys = data_paths[batch][image_id].keys()
-            if len(keys) == 5:
+            if (len(keys) == 5 and cfg.emb) or (len(keys) == 4 and not cfg.emb):
                 if len(data_paths[batch][image_id]["raw_images"]) != 11:
                     errors.append("raw images not 11")
                 if "GT" not in data_paths[batch][image_id]:
@@ -87,11 +102,12 @@ def generate_data_paths_dict(
                     errors.append(
                         f"integral images are {n_integral_images} not {len(focal_planes)}"
                     )
-                n_embeddings = len(data_paths[batch][image_id]["embeddings"])
-                if n_embeddings < len(focal_planes):
-                    errors.append(
-                        f"embeddings are {n_integral_images} not {len(focal_planes)}"
-                    )
+                if cfg.emb:
+                    n_embeddings = len(data_paths[batch][image_id]["embeddings"])
+                    if n_embeddings < len(focal_planes):
+                        errors.append(
+                            f"embeddings are {n_integral_images} not {len(focal_planes)}"
+                        )
             else:
                 errors.append(f"sample is missing something, keys are {keys}")
 
@@ -109,12 +125,11 @@ def generate_data_paths_dict(
 
 
 if __name__ == "__main__":
-    p = r"/home/markus-frohmann/cv-image-restoration/data"
-    raw_folder = p + r"/original"
-    integral_folder = p + r"/proc"
-    embedding_folder = p + r"/embeddings/full/small"
+    # parse command line
+    parser = opts_parser()
+    cfg = parser.parse_args()
 
-    data_paths = generate_data_paths_dict(raw_folder, integral_folder, embedding_folder)
+    data_paths = generate_data_paths_dict(cfg.raw_dir, cfg.integral_dir, cfg.emb_dir)
 
     # print some stats
     print("number of batches:", len(data_paths))
@@ -128,16 +143,17 @@ if __name__ == "__main__":
             ]
         ),
     )
-    print(
-        "number of embeddings:",
-        sum(
-            [
-                len(data_paths[batch][image_id]["embeddings"])
-                for batch in data_paths
-                for image_id in data_paths[batch]
-            ]
-        ),
-    )
+    if cfg.emb:
+        print(
+            "number of embeddings:",
+            sum(
+                [
+                    len(data_paths[batch][image_id]["embeddings"])
+                    for batch in data_paths
+                    for image_id in data_paths[batch]
+                ]
+            ),
+        )
     print(
         "number of raw images:",
         sum(
@@ -181,7 +197,7 @@ if __name__ == "__main__":
                 "raw_images": data_paths[batch][image_id]["raw_images"],
                 "parameters": data_paths[batch][image_id]["parameters"],
                 "integral_images": data_paths[batch][image_id]["integral_images"],
-                "embeddings": data_paths[batch][image_id]["embeddings"],
+                "embeddings": data_paths[batch][image_id]["embeddings"] if cfg.emb else None,
             }
             data_paths_list.append(sample)
             # if idx > 1000:
