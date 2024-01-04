@@ -65,16 +65,16 @@ class BaseDataModule(LightningDataModule):
             logger=False
         )  # True --> we additionally log the hyperparameter
 
-        self.data_paths_json_path = data_paths_json_path
+        self.data_paths_json_path = self.hparams.data_paths_json_path
 
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
 
-        self.batch_size_per_device = batch_size
-        self.data_limit = data_limit
+        self.batch_size_per_device = self.hparams.batch_size
+        self.data_limit = self.hparams.data_limit
 
-        self.oversample = oversample
+        self.oversample = self.hparams.oversample
 
     def prepare_data(self) -> None:
         """Download data if needed. Lightning ensures that `self.prepare_data()` is called only
@@ -145,6 +145,7 @@ class BaseDataModule(LightningDataModule):
             batch_size=self.batch_size_per_device,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
+            shuffle=True,
             sampler=sampler,
         )
 

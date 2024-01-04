@@ -44,6 +44,7 @@ img_standardization:
 # HFImageDataModule
 # just an example, not actually used here.
 backbone_model_name: "facebook/dpt-dinov2-small-nyu"
+residual: "False"
 
 wandb:
   project: "CV2023-share"

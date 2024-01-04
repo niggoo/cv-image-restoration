@@ -21,6 +21,7 @@ from torchinfo import summary
 from src.data.emb_datamodule import EmbeddingDataModule
 from src.data.hf_datamodule import HFImageDataModule
 from src.data.image_datamodule import ImageDataModule
+from src.data.dpt_datamodule import DptImageDataModule
 from src.model.dinov2.conv_decoder import ModifiedConvHead
 from src.model.restoration_module import RestorationLitModule
 from src.model.unet.unet import UNet
@@ -92,12 +93,13 @@ def main(cfg: DictConfig):
             early_stop_callback,
         ],
         default_root_dir=None,  # change dirc if needed
-        precision="32",  # 32 is full precision, maybe we need
+        precision=cfg.precision if hasattr(cfg, "precision") else "32",  # 32 is full precision, Dino was trained in 16
         gradient_clip_val=config.max_grad_norm,  # 0. means no clipping
         accumulate_grad_batches=config.grad_accum_steps,
         log_every_n_steps=50,
         accelerator=config.device.type or device,
         devices=config.device.ids or None,
+        num_sanity_val_steps=0,
     )
     # start training
     trainer.fit(pl_module, datamodule=datamodule, ckpt_path=config.checkpoint)
@@ -115,6 +117,7 @@ def init_wandb(config):
         config=OmegaConf.to_container(config),  # this logs all hyperparameters for us
         name=config.wandb.experiment_name,
     )
+
     return logger
 
 
@@ -127,7 +130,7 @@ def get_model(config):
     elif config.model == "DPT":
         dino = Dinov2()
         dpt = DPT()
-        return torch.nn.ModuleList([dino, dpt])
+        return torch.nn.Sequential(dino, dpt)
 
 
 class ImageLoggingCallback(Callback):
@@ -135,18 +138,10 @@ class ImageLoggingCallback(Callback):
         self.datamodule = datamodule
         self.num_samples = num_samples
         self.wandb_logger = wandb_logger
-        # save fig to wandb_logger.save_dir
-        self.folder_path = os.path.join(
-            self.wandb_logger._project, self.wandb_logger.version
-        )
-        # create dir
-        if not os.path.exists(self.folder_path):
-            os.makedirs(self.folder_path)
-        if not os.path.exists(os.path.join(self.folder_path, "single")):
-            os.makedirs(os.path.join(self.folder_path, "single"))
 
     def on_train_epoch_end(self, trainer, pl_module):
         pl_module.eval()
+        fp = os.path.join(self.wandb_logger.save_dir, "img")
         with torch.no_grad():
             for idx in range(self.num_samples):
                 embeddings, gt, raw, _ = self.datamodule.data_val.get_all(idx)
@@ -159,9 +154,9 @@ class ImageLoggingCallback(Callback):
                 fig = plot_images(raw=raw, pred=pred, gt=gt)
                 fig_single = plot_pred_image(pred)
                 # add filename
-                fig_path = os.path.join(self.folder_path, f"val_image_{idx}.png")
+                fig_path = os.path.join(fp, f"val_image_{idx}.png")
                 fig_single_path = os.path.join(
-                    self.folder_path, "single", f"val_image_{idx}.png"
+                    fp, "single", f"val_image_{idx}.png"
                 )
 
                 # save figs
@@ -221,6 +216,15 @@ def get_datamodule(config):
     elif config.datamodule == "HFImageDataModule":
         return HFImageDataModule(
             backbone_model_name=config.backbone_model_name,
+            data_paths_json_path="src/data/data_paths.json",
+            batch_size=config.batch_size,
+            num_workers=config.num_workers,
+            pin_memory=config.pin_memory,
+            data_limit=data_limit,
+            oversample=config.data.oversample,
+        )
+    elif config.datamodule == "DPTImageDataModule":
+        return DptImageDataModule(
             data_paths_json_path="src/data/data_paths.json",
             batch_size=config.batch_size,
             num_workers=config.num_workers,

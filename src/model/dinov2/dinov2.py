@@ -5,7 +5,7 @@ from transformers import Dinov2Model, Dinov2Config
 
 
 class Dinov2 (nn.Module):
-    def __init__(self, dinov2_size: str = "small", out_features: list = [4, 8, 12], channels: int = 4) -> None:
+    def __init__(self, dinov2_size: str = "small", out_features: list = [3, 6, 9, 12], channels: int = 4) -> None:
         """Dinov2 model with a selection of output features
 
         :params dinov2_size: size of the model, either "small", "base", "large" or "giant"
@@ -14,7 +14,7 @@ class Dinov2 (nn.Module):
         model_name = f"facebook/dinov2-{dinov2_size}"
         config = Dinov2Config.from_pretrained(model_name)
         # overwrite settings
-        config.num_channels = channels
+        config.num_channels = channels  # input channels
         config.patch_size = 16
         config.output_hidden_states = True
         self.out_features = out_features

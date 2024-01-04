@@ -68,7 +68,7 @@ class RestorationLitModule(LightningModule):
 
         self.model = model
         # XXX: we only use the config for standardization
-        # but maybe also for something else in the future?
+        # but maybe also for something else in the future? yes the learning rate
         self.config = config
 
         # loss function
@@ -142,7 +142,7 @@ class RestorationLitModule(LightningModule):
             # replace with zeros
             restored[torch.isnan(restored)] = 0
             raise ValueError("Nan values in prediction")
-        # restored = restored + gt
+
         # mask = torch.where(
         #     gt == 0, torch.tensor(0.0).to(gt.device), torch.tensor(1.0).to(gt.device)
         # ).to(gt.device).bool()
@@ -176,7 +176,7 @@ class RestorationLitModule(LightningModule):
         self.log(
             "train/loss",
             mloss,
-            on_step=False,
+            # on_step=False,
             on_epoch=True,
             prog_bar=True,
             sync_dist=True,
@@ -353,7 +353,8 @@ class RestorationLitModule(LightningModule):
 
         :return: A dict containing the configured optimizers and learning-rate schedulers to be used for training.
         """
-        optimizer = self.hparams.optimizer(params=self.trainer.model.parameters())
+        optimizer = self.hparams.optimizer(params=self.trainer.model.parameters(),
+                                           lr=self.config.learning_rate)
         if self.hparams.scheduler is not None:
             scheduler = self.hparams.scheduler(
                 optimizer=optimizer
