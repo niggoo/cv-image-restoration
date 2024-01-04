@@ -129,7 +129,7 @@ class DptImageDataModule(BaseDataModule):
             norm_stats = torch.load(ns_path)
         else:
             print("Calculate Norm for train set:")
-            norm_stats = calc_norm(data_paths[:200])
+            norm_stats = calc_norm(data_paths[:train_size])
             torch.save(norm_stats, ns_path)
 
         self.data_train: Optional[Dataset] = DptDataSet(
