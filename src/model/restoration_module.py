@@ -148,7 +148,9 @@ class RestorationLitModule(LightningModule):
         # ).to(gt.device).bool()
         mse = self.mse(restored, gt)
         if self.config.loss.use_msge:
-            msge = self.msge(restored, gt)
+            msge = self.msge(
+                self.rearrange_for_ssim(restored), self.rearrange_for_ssim(gt)
+            )
             loss = mse + self.config.loss.msge_weight * msge
         else:
             loss = mse
@@ -353,8 +355,9 @@ class RestorationLitModule(LightningModule):
 
         :return: A dict containing the configured optimizers and learning-rate schedulers to be used for training.
         """
-        optimizer = self.hparams.optimizer(params=self.trainer.model.parameters(),
-                                           lr=self.config.learning_rate)
+        optimizer = self.hparams.optimizer(
+            params=self.trainer.model.parameters(), lr=self.config.learning_rate
+        )
         if self.hparams.scheduler is not None:
             scheduler = self.hparams.scheduler(
                 optimizer=optimizer

@@ -145,7 +145,7 @@ class BaseDataModule(LightningDataModule):
             batch_size=self.batch_size_per_device,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
-            shuffle=True,
+            shuffle=(sampler is None),
             sampler=sampler,
         )
 

@@ -439,8 +439,8 @@ class MSGE(nn.Module):
         self.kernel_y = self.kernel_y.to(pred.device)
 
         # bring pred and target to shape (N, 1, H, W)
-        pred = pred.permute(0, 3, 1, 2)
-        target = target.permute(0, 3, 1, 2)
+        # pred = pred.permute(0, 3, 1, 2)
+        # target = target.permute(0, 3, 1, 2)
 
         # Calculate gradients for input and target
         grad_input_x = F.conv2d(pred, self.kernel_x, padding=1)

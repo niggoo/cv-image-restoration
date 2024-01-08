@@ -1,22 +1,22 @@
 description: "Restores air-images of person in a forest using Dinov2 Encoder and DPT Decoder"
 
 # Training parameters
-batch_size: 8
+batch_size: 32
 grad_accum_steps: 1
 n_epochs: 150
 max_grad_norm: 0.0
 learning_rate: 0.0001
 
 # Miscellaneous
-num_workers: 2
+num_workers: 0
 checkpoint: null  # null in YAML represents None in Python
 test: false       # false in YAML represents False in Python
 pin_memory: false
-precision: "16-mixed"
+precision: "32"
 
 device:
   type: "cuda" # "cuda", "cpu"; null means auto-select cuda if available, else cpu
-  ids: [0] # [0], [0,1,2,3], [1,2,3]; null means auto-select all available GPUs
+  ids: [0, 1, 2, 3] # [0], [0,1,2,3], [1,2,3]; null means auto-select all available GPUs
 
 data:
   limit: null # sys.maxsize = 9223372036854775807

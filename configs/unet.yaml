@@ -1,7 +1,7 @@
 description: "Restores air-images of person in a forest using a simple UNet baseline"
 
 # Training parameters
-batch_size: 6
+batch_size: 16
 grad_accum_steps: 1
 n_epochs: 150
 max_grad_norm: 0.0
@@ -15,14 +15,14 @@ pin_memory: false # false in YAML represents False in Python
 
 device:
   type: "cuda" # "cuda", "cpu"
-  ids: [1,2,3] # [0], [0,1,2,3], [1,2,3], ...
+  ids: [0,1,2,3] # [0], [0,1,2,3], [1,2,3], ...
 
 
 datamodule: "ImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
 model: "UNet" # "UNet", "ModifiedConvHead", ("DPT")
 
 early_stopping:
-  patience: 10
+  patience: 20
   min_delta: 0
 
 data:
@@ -30,8 +30,8 @@ data:
   oversample: false
 
 loss:
-  use_msge: false
-  msge_weight: 1.0
+  use_msge: true
+  msge_weight: 0.5
 
 # UNet
 img_standardization:
@@ -50,5 +50,5 @@ wandb:
   project: "CV2023-share"
   entity: "cv2023-a6"
   group: "UNet"
-  notes: "Testing UNet baselines!"
-  experiment_name: "UNet standardization"
+  notes: "UNet baseline"
+  experiment_name: "UNet standardization-MSGE=0.5-lr0.0001"

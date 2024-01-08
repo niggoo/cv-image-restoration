@@ -93,7 +93,9 @@ def main(cfg: DictConfig):
             early_stop_callback,
         ],
         default_root_dir=None,  # change dirc if needed
-        precision=cfg.precision if hasattr(cfg, "precision") else "32",  # 32 is full precision, Dino was trained in 16
+        precision=cfg.precision
+        if hasattr(cfg, "precision")
+        else "32",  # 32 is full precision, Dino was trained in 16
         gradient_clip_val=config.max_grad_norm,  # 0. means no clipping
         accumulate_grad_batches=config.grad_accum_steps,
         log_every_n_steps=50,
@@ -138,10 +140,18 @@ class ImageLoggingCallback(Callback):
         self.datamodule = datamodule
         self.num_samples = num_samples
         self.wandb_logger = wandb_logger
+        # save fig to wandb_logger.save_dir
+        self.folder_path = os.path.join(
+            self.wandb_logger._project, self.wandb_logger.version
+        )
+        # create dir
+        if not os.path.exists(self.folder_path):
+            os.makedirs(self.folder_path)
+        if not os.path.exists(os.path.join(self.folder_path, "single")):
+            os.makedirs(os.path.join(self.folder_path, "single"))
 
     def on_train_epoch_end(self, trainer, pl_module):
         pl_module.eval()
-        fp = os.path.join(self.wandb_logger.save_dir, "img")
         with torch.no_grad():
             for idx in range(self.num_samples):
                 embeddings, gt, raw, _ = self.datamodule.data_val.get_all(idx)
@@ -154,9 +164,9 @@ class ImageLoggingCallback(Callback):
                 fig = plot_images(raw=raw, pred=pred, gt=gt)
                 fig_single = plot_pred_image(pred)
                 # add filename
-                fig_path = os.path.join(fp, f"val_image_{idx}.png")
+                fig_path = os.path.join(self.folder_path, f"val_image_{idx}.png")
                 fig_single_path = os.path.join(
-                    fp, "single", f"val_image_{idx}.png"
+                    self.folder_path, "single", f"val_image_{idx}.png"
                 )
 
                 # save figs

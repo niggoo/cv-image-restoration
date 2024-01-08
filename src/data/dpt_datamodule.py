@@ -15,13 +15,18 @@ from tqdm import tqdm
 
 
 class DptDataSet(Dataset):
-    def __init__(self, data_paths: dict,
-                 norm_stat: torch.Tensor,
-                 data_limit: int = sys.maxsize,):
+    def __init__(
+        self,
+        data_paths: dict,
+        norm_stat: torch.Tensor,
+        data_limit: int = sys.maxsize,
+    ):
         super().__init__()
         self.data_paths = data_paths
         self.data_limit = data_limit
-        self.norm = torchvision.transforms.Normalize(mean= norm_stat[:, 0], std=norm_stat[:, 1])
+        self.norm = torchvision.transforms.Normalize(
+            mean=norm_stat[:, 0], std=norm_stat[:, 1]
+        )
 
     def __len__(self):
         return min(len(self.data_paths), self.data_limit)
@@ -46,13 +51,17 @@ class DptDataSet(Dataset):
         # load the GT image
         gt = torchvision.io.read_image(sample["GT"], ImageReadMode.GRAY)
         # load integrals
-        integral_images = self.norm(torch.stack(
-            [
-                torchvision.io.read_image(file, ImageReadMode.GRAY).float().squeeze()
-                for file in sample["integral_images"][:4]
-            ],
-            dim=0,
-        ))
+        integral_images = self.norm(
+            torch.stack(
+                [
+                    torchvision.io.read_image(file, ImageReadMode.GRAY)
+                    .float()
+                    .squeeze()
+                    for file in sample["integral_images"][:4]
+                ],
+                dim=0,
+            )
+        )
         # check for nan values
         return integral_images, gt / 255.0  # "normalize" to [0, 1]
 
@@ -67,39 +76,17 @@ def get_norm(sample: dict):
 
 
 def calc_norm(data_paths: list):
-
     lstats = []
-    with torch.multiprocessing.Pool(6) as p:
-        for s in tqdm(p.imap_unordered(get_norm, data_paths)):
-            lstats.append(s)
+    for path in tqdm(data_paths):
+        s = get_norm(path)
+        lstats.append(s)
+
 
     lstats = torch.stack(lstats, dim=0)
     return lstats.mean(dim=0)
 
 
 class DptImageDataModule(BaseDataModule):
-    def __init__(
-        self,
-            data_paths_json_path: str = "../data/data_paths.json",
-            data_split: Tuple[float, float, float] = (0.80, 0.1, 0.1),
-            batch_size: int = 8,
-            num_workers: int = 0,
-            pin_memory: bool = False,
-            persistent_workers: bool = True,
-            oversample: bool = False,
-            data_limit: int = sys.maxsize
-    ) -> None:
-        """Initialize a DataModule.
-
-        :param data_dir: The data directory. Defaults to `"data/"`.
-        :param data_split: The train, validation and test split. Defaults to `(55_000, 5_000, 10_000)`.
-        :param batch_size: The batch size. Defaults to `64`.
-        :param num_workers: The number of workers. Defaults to `0`.
-        :param pin_memory: Whether to pin memory. Defaults to `False`.
-        """
-        super().__init__(data_paths_json_path, data_split, batch_size, num_workers, pin_memory, persistent_workers, oversample, data_limit)
-
-        self.oversample = oversample
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -133,19 +120,13 @@ class DptImageDataModule(BaseDataModule):
             torch.save(norm_stats, ns_path)
 
         self.data_train: Optional[Dataset] = DptDataSet(
-            data_paths[:train_size],
-            norm_stats,
-            self.data_limit
+            data_paths[:train_size], norm_stats, self.data_limit
         )
         self.data_val: Optional[Dataset] = DptDataSet(
-            data_paths[train_size : train_size + val_size],
-            norm_stats,
-            self.data_limit
+            data_paths[train_size : train_size + val_size], norm_stats, self.data_limit
         )
         self.data_test: Optional[Dataset] = DptDataSet(
-            data_paths[train_size + val_size:],
-            norm_stats,
-            self.data_limit
+            data_paths[train_size + val_size :], norm_stats, self.data_limit
         )
 
         self.data_paths = data_paths
@@ -159,6 +140,12 @@ class DptImageDataModule(BaseDataModule):
                 )
             self.batch_size_per_device = (
                 self.hparams.batch_size // self.trainer.world_size
+            )
+        # load and split datasets only if not loaded already
+        if not self.data_train and not self.data_val and not self.data_test:
+            dataset = DptDataSet(self.hparams.data_dir)
+            self.data_train, self.data_val, self.data_test = random_split(
+                dataset, self.hparams.data_split
             )
 
 
