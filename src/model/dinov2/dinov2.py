@@ -4,8 +4,14 @@ import torchinfo
 from transformers import Dinov2Model, Dinov2Config
 
 
-class Dinov2 (nn.Module):
-    def __init__(self, dinov2_size: str = "small", out_features: list = [3, 6, 9, 12], channels: int = 4) -> None:
+class Dinov2(nn.Module):
+    def __init__(
+        self,
+        dinov2_size: str = "small",
+        out_features: list = [3, 6, 9, 12],
+        freeze_encoder: bool = True,
+        channels: int = 4,
+    ) -> None:
         """Dinov2 model with a selection of output features
 
         :params dinov2_size: size of the model, either "small", "base", "large" or "giant"
@@ -20,10 +26,13 @@ class Dinov2 (nn.Module):
         self.out_features = out_features
         self.config = config
         # init dinov2 model
-        self.model = Dinov2Model.from_pretrained(model_name, config=config, ignore_mismatched_sizes=True)
+        self.model = Dinov2Model.from_pretrained(
+            model_name, config=config, ignore_mismatched_sizes=True
+        )
         # freeze encoder but leave embeddings trainable
-        for param in self.model.encoder.parameters():  
-            param.requires_grad = False
+        if freeze_encoder:
+            for param in self.model.encoder.parameters():
+                param.requires_grad = False
 
     def forward(self, x):
         """
@@ -38,14 +47,22 @@ class Dinov2 (nn.Module):
         x = self.model(x)
         # reformat output
         outputs = list(x.hidden_states[i] for i in self.out_features)
-        outputs = [(out[:, 1 + 0:], out[:, 0]) for out in outputs]  # zero is the number of register (should be always 0)
-        outputs = [(
-            seq.reshape(B, w // self.config.patch_size, h // self.config.patch_size, -1).permute(0, 3, 1, 2).contiguous(),
-            cls)
+        outputs = [
+            (out[:, 1 + 0 :], out[:, 0]) for out in outputs
+        ]  # zero is the number of register (should be always 0)
+        outputs = [
+            (
+                seq.reshape(
+                    B, w // self.config.patch_size, h // self.config.patch_size, -1
+                )
+                .permute(0, 3, 1, 2)
+                .contiguous(),
+                cls,
+            )
             for seq, cls in outputs
         ]
         return outputs
-    
+
 
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"

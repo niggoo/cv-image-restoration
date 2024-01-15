@@ -1,9 +1,9 @@
 description: "Restores air-images of person in a forest using pre-computed DinoV2 Embeddings"
 
 # Training parameters
-batch_size: 150
+batch_size: 200
 grad_accum_steps: 1
-n_epochs: 120
+n_epochs: 150
 max_grad_norm: 0.0
 learning_rate: 0.001
 
@@ -15,15 +15,15 @@ pin_memory: false
 
 device:
   type: "cuda" # "cuda", "cpu"; null means auto-select cuda if available, else cpu
-  ids: [1,2,3] # [0], [0,1,2,3], [1,2,3]; null means auto-select all available GPUs
+  ids: [0,1,2,3] # [0], [0,1,2,3], [1,2,3]; null means auto-select all available GPUs
 
 data:
   limit: null # sys.maxsize = 9223372036854775807
-  oversample: false
+  oversample: true
 
 loss:
-  use_msge: false 
-  msge_weight: 1.0
+  use_msge: true 
+  msge_weight: 2.0
 
 datamodule: "EmbeddingDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
 model: "ModifiedConvHead" # "UNet", "ModifiedConvHead", ("DPT")
@@ -43,4 +43,4 @@ wandb:
   entity: "cv2023-a6"
   group: "DINO ModifiedConvHead"
   notes: "Testing DINO with ModifiedConvHead"
-  experiment_name: "Small 1e-3 + MSGE=1.0"
+  experiment_name: "Small 1e-3 MSGE 2.0"

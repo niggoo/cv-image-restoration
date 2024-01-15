@@ -130,7 +130,11 @@ def get_model(config):
     elif config.model == "ModifiedConvHead":
         return ModifiedConvHead(in_channels=DINO_SIZE_MAP[config.backbone_size])
     elif config.model == "DPT":
-        dino = Dinov2()
+        dino = Dinov2(
+            dinov2_size=config.backbone_size,
+            out_features=config.out_features,
+            freeze_encoder=config.freeze_encoder,
+        )
         dpt = DPT()
         return torch.nn.Sequential(dino, dpt)
 

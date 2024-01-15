@@ -5,7 +5,7 @@ batch_size: 32
 grad_accum_steps: 1
 n_epochs: 150
 max_grad_norm: 0.0
-learning_rate: 0.0001
+learning_rate: 0.00005
 
 # Miscellaneous
 num_workers: 0
@@ -20,16 +20,18 @@ device:
 
 data:
   limit: null # sys.maxsize = 9223372036854775807
-  oversample: false
+  oversample: true
 
 datamodule: "DPTImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
 
 model: "DPT" # "UNet", "ModifiedConvHead", ("DPT")
 backbone_size: "small"  # small, base, large
 residual: True # if to learn the residual and not the gt
+freeze_encoder: True # freezes all non-embedding layers of the encoder
+out_features: [3, 6, 9, 12]
 
 loss:
-  use_msge: false
+  use_msge: true
   msge_weight: 1.0
 
 early_stopping:
@@ -45,4 +47,4 @@ wandb:
   entity: "cv2023-a6"
   group: "DINO DPT"
   notes: "Testing DINO with DPT"
-  experiment_name: "Small 1e-3"
+  experiment_name: "Small 5e-5 MSGE 2.0"
