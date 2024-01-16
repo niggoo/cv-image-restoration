@@ -13,6 +13,8 @@ import torch
 import torchvision
 from torchvision.io import ImageReadMode
 from transformers import AutoImageProcessor, AutoModel
+import matplotlib.pyplot as plt
+from PIL import Image
 
 DINO_SIZE_MAP = {
     "small": 384,
@@ -40,11 +42,39 @@ def parse_args_and_validate():
         # If it's a directory, search for image files in the directory
         image_files = glob.glob(os.path.join(args.images[0], '*.png'))
         if len(image_files) < 4:
-            raise ValueError(f"Found less than 4 images in directory: {args.images[0]}")
+            print(f"Found {len(image_files)} images in {args.images[0]}")
+            print("The last image will be used to fill the missing images")
+            while len(image_files) < 4:
+                image_files.append(image_files[-1])
+        elif len(image_files) > 4:
+            print("Found more than 4 images in {args.images[0]}")
+            print("The first 4 images will be used")
         args.images = image_files[:4]  # Select the first 4 images
+    elif len(args.images) != 4:
+        print(f"Expected 4 images, got {len(args.images)}")
+        print("The last image will be used to fill the missing images")
+        while len(args.images) < 4:
+            args.images.append(args.images[-1])
+        args.images = args.images[:4]
 
     return args
 
+def plot_output(args, output):
+    fig = plt.figure(figsize=(20, 10))
+    focal_lengths = [0, 0.5, 1.0, 1.5]
+    fig.text(0.1, 0.72, 'Input', ha='center', va='center', rotation='vertical', fontsize=20)
+
+    for idx, image_path in enumerate(args.images):
+        ax = fig.add_subplot(2, 4, idx + 1)
+        ax.imshow(Image.open(image_path))
+        ax.axis("off")
+        ax.set_title(f'Focal length {focal_lengths[idx]}')
+
+    ax = fig.add_subplot(2, 4, 5)
+    ax.imshow(output.cpu().numpy().squeeze(), cmap="gray")
+    ax.axis("off")
+    fig.text(0.1, 0.28, 'Output', ha='center', va='center', rotation='vertical', fontsize=20)
+    return plt
 
 def main():
     args = parse_args_and_validate()
@@ -55,11 +85,14 @@ def main():
     # load checkpoint
     checkpoint = torch.load(args.ckpt, map_location=device)
 
-    # rename state dict keys by removing "model." prefix TODO: why is this (also check if necessary for unet)
+    # rename state dict keys by removing "model." prefix 
+    # because the model was saved using pytorch lightning - slightly different structure to default pytorch
+    # lightning adds optimizer and scheduler state dicts to the checkpoint
     new_state_dict = {}
     for k, v in checkpoint["state_dict"].items():
         new_state_dict[k.replace("model.", "", 1)] = v
     checkpoint["state_dict"] = new_state_dict
+
 
     if args.model == "unet" or args.model == "dpt":  # unet and dpt have same forward pass
 
@@ -92,11 +125,7 @@ def main():
             model.load_state_dict(checkpoint["state_dict"])
 
             # load images (same as in src/data/dpt_datamodule.py)
-            norm_stat = torch.tensor(
-                [[107.9049, 30.2373],  # TODO: maybe not hardcode? File is src/data/norm_stats.json
-                 [107.9046, 30.2380],
-                 [107.9049, 30.2348],
-                 [107.9048, 30.2367]])
+            norm_stat = torch.load(os.path.join("src", "data", "norm_stats.pt"))
 
             norm = torchvision.transforms.Normalize(mean=norm_stat[:, 0], std=norm_stat[:, 1])
             integral_images = norm(
@@ -115,7 +144,6 @@ def main():
     elif args.model == "conv_decoder":
         # imports
         from src.model.dinov2.conv_decoder import ModifiedConvHead
-        from PIL import Image
 
         # load the dino
         backbone_size = checkpoint["hyper_parameters"]["config"]["backbone_size"]
@@ -150,10 +178,11 @@ def main():
             output = conv_decoder(embeddings).squeeze(-1)
 
     # save the output
-    torchvision.utils.save_image(output, args.output)
+    # torchvision.utils.save_image(output, args.output)
+    plt = plot_output(args, output)
+    # plt.show()
+    plt.savefig(args.output)
     print(f"Saved output to: {args.output}")
-    # TODO maybe make nice input output comparison plot (see test_plot.py)
-
 
 if __name__ == "__main__":
     main()
