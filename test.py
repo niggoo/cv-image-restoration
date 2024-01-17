@@ -16,6 +16,11 @@ from transformers import AutoImageProcessor, AutoModel
 import matplotlib.pyplot as plt
 from PIL import Image
 
+from transformers import logging
+
+logging.set_verbosity_error()
+
+
 DINO_SIZE_MAP = {
     "small": 384,
     "base": 768,
@@ -41,21 +46,17 @@ def parse_args_and_validate():
     if len(args.images) == 1 and os.path.isdir(args.images[0]):
         # If it's a directory, search for image files in the directory
         image_files = glob.glob(os.path.join(args.images[0], '*.png'))
-        if len(image_files) < 4:
-            print(f"Found {len(image_files)} images in {args.images[0]}")
-            print("The last image will be used to fill the missing images")
-            while len(image_files) < 4:
-                image_files.append(image_files[-1])
-        elif len(image_files) > 4:
-            print("Found more than 4 images in {args.images[0]}")
-            print("The first 4 images will be used")
-        args.images = image_files[:4]  # Select the first 4 images
-    elif len(args.images) != 4:
-        print(f"Expected 4 images, got {len(args.images)}")
+    else: 
+        image_files = args.images
+    if len(image_files) < 4:
+        print(f"Expected 4 images, got {len(image_files)}")
         print("The last image will be used to fill the missing images")
-        while len(args.images) < 4:
-            args.images.append(args.images[-1])
-        args.images = args.images[:4]
+        while len(image_files) < 4:
+            image_files.append(image_files[-1])
+    elif len(image_files) > 4:
+        print(f"Found more than 4 images")
+        print("The first 4 images will be used")
+    args.images = image_files[:4]  # Select the first 4 images
 
     return args
 
@@ -87,12 +88,9 @@ def main():
 
     # rename state dict keys by removing "model." prefix 
     # because the model was saved using pytorch lightning - slightly different structure to default pytorch
-    # lightning adds optimizer and scheduler state dicts to the checkpoint
-    new_state_dict = {}
-    for k, v in checkpoint["state_dict"].items():
-        new_state_dict[k.replace("model.", "", 1)] = v
-    checkpoint["state_dict"] = new_state_dict
-
+    # lightning adds optimizer and scheduler state dicts to the checkpoint 
+    checkpoint["state_dict"] = {k.replace("model.", "", 1): v for k, v in checkpoint["state_dict"].items()}
+# 
 
     if args.model == "unet" or args.model == "dpt":  # unet and dpt have same forward pass
 
@@ -101,8 +99,13 @@ def main():
             model = UNet()
             model.load_state_dict(checkpoint["state_dict"])
             img_standardization = checkpoint["hyper_parameters"]["config"]["img_standardization"]
-            mean_ckpt = img_standardization["mean"]
-            std_ckpt = img_standardization["std"]
+            if img_standardization["do_destandardize"] is True:
+                # load the mean and std from the checkpoint
+                mean_ckpt = img_standardization["mean"]
+                std_ckpt = img_standardization["std"]
+            else:
+                mean_ckpt = 0
+                std_ckpt = 1
 
             # load images (same as in src/data/image_datamodule.py)
             integral_images = (
