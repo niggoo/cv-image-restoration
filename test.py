@@ -1,11 +1,3 @@
-# example usage:
-#  python test.py --model conv_decoder --ckpt /path/to/file.ckpt --output output.png --images image1.png image2.png image3.png image4.png
-#  python test.py --model unet --ckpt /path/to/file.ckpt --images path/to/folder/with/images
-# options for --model: conv_decoder, unet, dpt
-# --ckpt: path to checkpoint
-# --images: must be 4 aos integrated images with focal planes in the order: 0m, -0,5m, -1m, -1,5m or folder with the 4 images
-# --output: path for output image
-
 import argparse
 import os
 import glob
@@ -28,15 +20,28 @@ DINO_SIZE_MAP = {
 
 
 def parse_args_and_validate():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, required=True)
-    parser.add_argument("--ckpt", type=str, required=True)
-    parser.add_argument("--output", type=str, default="output.png")
-    parser.add_argument("--images", nargs="+", default=["real_focal_stack"])  # either 4 images or folder with 4 images
+    valid_models = ["conv_decoder", "unet", "dpt"]
+    parser = argparse.ArgumentParser(description='''This script is used for inference with different models.
+        Focal planes of integral images should be at 0m, -0.5m, -1m, -1.5m in that order and 512x512 pixels.
+        Example usage:
+        > python test.py --model conv_decoder --ckpt /path/to/file/conv_decoder.ckpt --output output.png --images image1.png image2.png image3.png image4.png
+        > python test.py --model unet --ckpt /path/to/file/unet.ckpt --images path/to/folder/with/images
+        > python test.py --model dpt --ckpt /path/to/file/dpt.ckpt''', formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument("--model", type=str, required=True,
+                        choices=valid_models,
+                        help="Model to use for inference (conv_decoder, unet, dpt)")
+    parser.add_argument("--ckpt", type=str, required=True,
+                        help="Path to checkpoint corresponding to the model")
+    parser.add_argument("--output", type=str, default="output.png",
+                        help="Path to save the output image, default: output.png")
+    parser.add_argument("--images", nargs="+", default=["real_focal_stack"],
+                        help="Either a list of 4 integral images or a directory containing those, default: "
+                             "./real_focal_stack")
     args = parser.parse_args()
 
     # validate the arguments
-    valid_models = ["conv_decoder", "unet", "dpt"]
+
     if args.model not in valid_models:
         raise ValueError(f"Unknown model: {args.model}, valid models are: {valid_models}")
     if not os.path.isfile(args.ckpt):
@@ -71,7 +76,7 @@ def plot_output(args, output):
 
     for idx, image_path in enumerate(args.images):
         ax = fig.add_subplot(2, 4, idx + 1)
-        ax.imshow(Image.open(image_path).resize((512, 512)))
+        ax.imshow(Image.open(image_path).resize((512, 512)), cmap="gray")
         ax.axis("off")
         ax.set_title(f'Focal length {focal_lengths[idx]}')
 
@@ -195,6 +200,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # python test.py --model conv_decoder --ckpt cktpts/epoch=63-step=7296_DINO.ckpt --output real_integrals_results/conv_decoder_result.png
-    # python test.py --model dpt --ckpt cktpts/epoch=147-step=105376_DPT.ckpt --output real_integrals_results/dpt_result.png
-    # python test.py --model unet --ckpt cktpts/epoch=36-step=52688_UNET.ckpt --output real_integrals_results/unet_result.png
+
