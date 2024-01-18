@@ -20,7 +20,6 @@ from transformers import logging
 
 logging.set_verbosity_error()
 
-
 DINO_SIZE_MAP = {
     "small": 384,
     "base": 768,
@@ -33,7 +32,7 @@ def parse_args_and_validate():
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--ckpt", type=str, required=True)
     parser.add_argument("--output", type=str, default="output.png")
-    parser.add_argument("--images", nargs="+", required=True)  # either 4 images or folder with 4 images
+    parser.add_argument("--images", nargs="+", default=["real_focal_stack"])  # either 4 images or folder with 4 images
     args = parser.parse_args()
 
     # validate the arguments
@@ -46,7 +45,7 @@ def parse_args_and_validate():
     if len(args.images) == 1 and os.path.isdir(args.images[0]):
         # If it's a directory, search for image files in the directory
         image_files = glob.glob(os.path.join(args.images[0], '*.png'))
-    else: 
+    else:
         image_files = args.images
     if len(image_files) < 4:
         print(f"Expected 4 images, got {len(image_files)}")
@@ -60,14 +59,19 @@ def parse_args_and_validate():
 
     return args
 
+
 def plot_output(args, output):
     fig = plt.figure(figsize=(20, 10))
     focal_lengths = [0, 0.5, 1.0, 1.5]
     fig.text(0.1, 0.72, 'Input', ha='center', va='center', rotation='vertical', fontsize=20)
 
+    title = {"conv_decoder": "Convolutional Decoder", "unet": "U-Net", "dpt": "DPT"}
+
+    fig.text(0.5, 0.95, f'Model: {title[args.model]}', ha='center', va='center', fontsize=20)
+
     for idx, image_path in enumerate(args.images):
         ax = fig.add_subplot(2, 4, idx + 1)
-        ax.imshow(Image.open(image_path))
+        ax.imshow(Image.open(image_path).resize((512, 512)))
         ax.axis("off")
         ax.set_title(f'Focal length {focal_lengths[idx]}')
 
@@ -76,6 +80,7 @@ def plot_output(args, output):
     ax.axis("off")
     fig.text(0.1, 0.28, 'Output', ha='center', va='center', rotation='vertical', fontsize=20)
     return plt
+
 
 def main():
     args = parse_args_and_validate()
@@ -88,9 +93,9 @@ def main():
 
     # rename state dict keys by removing "model." prefix 
     # because the model was saved using pytorch lightning - slightly different structure to default pytorch
-    # lightning adds optimizer and scheduler state dicts to the checkpoint 
+    # lightning adds optimizer and scheduler state dicts to the checkpoint
     checkpoint["state_dict"] = {k.replace("model.", "", 1): v for k, v in checkpoint["state_dict"].items()}
-# 
+    #
 
     if args.model == "unet" or args.model == "dpt":  # unet and dpt have same forward pass
 
@@ -187,5 +192,9 @@ def main():
     plt.savefig(args.output)
     print(f"Saved output to: {args.output}")
 
+
 if __name__ == "__main__":
     main()
+    # python test.py --model conv_decoder --ckpt cktpts/epoch=63-step=7296_DINO.ckpt --output real_integrals_results/conv_decoder_result.png
+    # python test.py --model dpt --ckpt cktpts/epoch=147-step=105376_DPT.ckpt --output real_integrals_results/dpt_result.png
+    # python test.py --model unet --ckpt cktpts/epoch=36-step=52688_UNET.ckpt --output real_integrals_results/unet_result.png
