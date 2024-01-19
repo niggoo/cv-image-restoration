@@ -11,6 +11,8 @@ import random
 import torchvision
 from torch.utils.data import Dataset, random_split
 from torchvision.io import ImageReadMode
+from torchvision.transforms import v2
+import torchvision.transforms as transforms
 from tqdm import tqdm
 
 
@@ -19,14 +21,16 @@ class DptDataSet(Dataset):
         self,
         data_paths: dict,
         norm_stat: torch.Tensor,
+        augment: bool = True,
         data_limit: int = sys.maxsize,
     ):
         super().__init__()
         self.data_paths = data_paths
         self.data_limit = data_limit
-        self.norm = torchvision.transforms.Normalize(
-            mean=norm_stat[:, 0], std=norm_stat[:, 1]
-        )
+        # standard data augmentation
+        self.augment = augment
+        self.norm = v2.Normalize(mean=norm_stat[:, 0], std=norm_stat[:, 1]),
+        
 
     def __len__(self):
         return min(len(self.data_paths), self.data_limit)
@@ -51,19 +55,29 @@ class DptDataSet(Dataset):
         # load the GT image
         gt = torchvision.io.read_image(sample["GT"], ImageReadMode.GRAY)
         # load integrals
-        integral_images = self.norm(
-            torch.stack(
-                [
-                    torchvision.io.read_image(file, ImageReadMode.GRAY)
-                    .float()
-                    .squeeze()
+        integral_images = torch.stack(
+                [torchvision.io.read_image(file, ImageReadMode.GRAY).float().squeeze()
                     for file in sample["integral_images"][:4]
-                ],
-                dim=0,
-            )
-        )
-        # check for nan values
-        return integral_images, gt / 255.0  # "normalize" to [0, 1]
+                ], dim=0,)
+        # normalize
+        integral_images = self.norm(integral_images)
+        # standard augmentation
+        if self.augment:
+            # random flip
+            if random.random() > 0.5:
+                integral_images = v2.functional.horizontal_flip_image(integral_images)
+                gt = transforms.functional.hflip(integral_images)
+            if random.random() > 0.5:
+                integral_images = transforms.functional.vflip(integral_images)
+                gt = transforms.functional.vflip(integral_images)
+            if random.random() > 0.5:
+                i, j, w, h = v2.RandomResizedCrop().get_params(
+                    integral_images, scale=(0.6, 1.0), ratio=(1, 1)
+                )
+                integral_images = v2.functional.resized_crop(integral_images, i, j, w, h, 512)
+                gt = v2.functional.resized_crop(gt, i, j, w, h, 512)
+
+        return integral_images, gt / 255.0  # scale to [0, 1]
 
 
 def get_norm(sample: dict):
@@ -80,7 +94,6 @@ def calc_norm(data_paths: list):
     for path in tqdm(data_paths):
         s = get_norm(path)
         lstats.append(s)
-
 
     lstats = torch.stack(lstats, dim=0)
     return lstats.mean(dim=0)
