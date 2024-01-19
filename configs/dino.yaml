@@ -19,24 +19,20 @@ device:
 
 data:
   limit: null # sys.maxsize = 9223372036854775807
-  oversample: true
+  oversample: false
 
 loss:
   use_msge: true 
   msge_weight: 2.0
 
-datamodule: "EmbeddingDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
+datamodule: "EmbeddingDataModule" # "EmbeddingDataModule", "ImageDataModule", "DPTImageDataModule"
 model: "ModifiedConvHead" # "UNet", "ModifiedConvHead", ("DPT")
 backbone_size: "small"  # small, base, large
-residual: "False"
-# 
+
+
 early_stopping:
   patience: 50
   min_delta: 0
-
-img_standardization:
-  do_standardize: false  # not used here.
-  do_destandardize: false
 
 wandb:
   project: "CV2023-share"

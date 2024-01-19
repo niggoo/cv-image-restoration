@@ -48,7 +48,7 @@ def process_images_on_gpu(gpu_id, image_paths, size):
 
 def main(size):
     # Find all image files
-    image_paths = glob.glob("../data/proc/**/*.png", recursive=True)
+    image_paths = glob.glob("data/proc/**/*.png", recursive=True)
 
     # Divide the workload among 4 GPUs
     gpu_workloads = [[] for _ in range(4)]
@@ -62,15 +62,15 @@ def main(size):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Process images with a specified model size."
-    )
-    parser.add_argument(
-        "size",
-        type=str,
-        choices=["small", "base", "large", "giant"],
-        help="Size of the model to use (e.g., base, large)",
-    )
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser(
+    #     description="Process images with a specified model size."
+    # )
+    # parser.add_argument(
+    #     "size",
+    #     type=str,
+    #     choices=["small", "base", "large", "giant"],
+    #     help="Size of the model to use (e.g., base, large)",
+    # )
+    # args = parser.parse_args()
 
-    main(args.size)
+    main("small")

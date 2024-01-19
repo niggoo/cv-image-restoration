@@ -19,7 +19,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchinfo import summary
 
 from src.data.emb_datamodule import EmbeddingDataModule
-from src.data.hf_datamodule import HFImageDataModule
 from src.data.image_datamodule import ImageDataModule
 from src.data.dpt_datamodule import DptImageDataModule
 from src.model.dinov2.conv_decoder import ModifiedConvHead
@@ -36,7 +35,7 @@ DINO_SIZE_MAP = {
 }
 
 
-@hydra.main(version_base=None, config_path="./configs/", config_name="dino")
+@hydra.main(version_base=None, config_path="./configs/", config_name="dino-dpt")
 def main(cfg: DictConfig):
     config = cfg
     # set seeds for numpy, torch and python.random
@@ -93,9 +92,7 @@ def main(cfg: DictConfig):
             early_stop_callback,
         ],
         default_root_dir=None,  # change dirc if needed
-        precision=cfg.precision
-        if hasattr(cfg, "precision")
-        else "32",  # 32 is full precision, Dino was trained in 16
+        precision=cfg.precision if hasattr(cfg, "precision") else "32",
         gradient_clip_val=config.max_grad_norm,  # 0. means no clipping
         accumulate_grad_batches=config.grad_accum_steps,
         log_every_n_steps=50,
@@ -124,7 +121,6 @@ def init_wandb(config):
 
 
 def get_model(config):
-    # TODO: add possibility to add hyperparams here! like Conv in_channels, etc.
     if config.model == "UNet":
         return UNet()
     elif config.model == "ModifiedConvHead":
@@ -135,12 +131,21 @@ def get_model(config):
             out_features=config.out_features,
             freeze_encoder=config.freeze_encoder,
         )
-        dpt = DPT()
+        dpt = DPT(embed_dims=DINO_SIZE_MAP[config.backbone_size])
         return torch.nn.Sequential(dino, dpt)
 
 
 class ImageLoggingCallback(Callback):
+    """Callback to log images to wandb during training."""
+
     def __init__(self, datamodule, num_samples=5, wandb_logger=None):
+        """Initialize the callback.
+
+        Args:
+            datamodule (pl.LightningDataModule): datamodule to get the images from
+            num_samples (int, optional): How many samples to log. Defaults to 5.
+            wandb_logger: The main wandb logger
+        """
         self.datamodule = datamodule
         self.num_samples = num_samples
         self.wandb_logger = wandb_logger
@@ -183,7 +188,7 @@ class ImageLoggingCallback(Callback):
                         key=f"val_image_{idx}", images=[fig_path]
                     )
                 except Exception as e:
-                    # sometimes, there are weird errors
+                    # sometimes, there are errors due to multi-processing
                     print(e)
                 # keep independent to log as many images as possible
                 try:
@@ -201,9 +206,8 @@ class ImageLoggingCallback(Callback):
 def get_datamodule(config):
     data_limit = config.data.limit if config.data.limit is not None else sys.maxsize
     if config.datamodule == "ImageDataModule":
-        # XXX: difference betwen ImageDataModule and HFImageDataModule:
-        # HF uses HuggingFace a pretrained model and normalizes using a processor
         # ImageDataModule uses the provided mean and std to normalize, calculated on the train set
+        # uses full images (for UNet Baseline)
         return ImageDataModule(
             mean=config.img_standardization.mean
             if config.img_standardization.do_destandardize
@@ -218,6 +222,7 @@ def get_datamodule(config):
             data_limit=data_limit,
             oversample=config.data.oversample,
         )
+    # uses pre-computed embeddings (using DINOv2 + Conv-Decoder)
     elif config.datamodule == "EmbeddingDataModule":
         return EmbeddingDataModule(
             data_paths_json_path=f"src/data/data_paths_{config.backbone_size}.json",
@@ -227,16 +232,7 @@ def get_datamodule(config):
             data_limit=data_limit,
             oversample=config.data.oversample,
         )
-    elif config.datamodule == "HFImageDataModule":
-        return HFImageDataModule(
-            backbone_model_name=config.backbone_model_name,
-            data_paths_json_path="src/data/data_paths.json",
-            batch_size=config.batch_size,
-            num_workers=config.num_workers,
-            pin_memory=config.pin_memory,
-            data_limit=data_limit,
-            oversample=config.data.oversample,
-        )
+    # uses on-the fly embeddings (using DINOv2 + DPT)
     elif config.datamodule == "DPTImageDataModule":
         return DptImageDataModule(
             data_paths_json_path="src/data/data_paths.json",

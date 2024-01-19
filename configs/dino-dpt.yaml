@@ -20,27 +20,22 @@ device:
 
 data:
   limit: null # sys.maxsize = 9223372036854775807
-  oversample: true
+  oversample: false
 
-datamodule: "DPTImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "HFImageDataModule"
+datamodule: "DPTImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "DPTImageDataModule"
 
-model: "DPT" # "UNet", "ModifiedConvHead", ("DPT")
+model: "DPT" # "UNet", "ModifiedConvHead", "DPT"
 backbone_size: "small"  # small, base, large
-residual: True # if to learn the residual and not the gt
 freeze_encoder: True # freezes all non-embedding layers of the encoder
-out_features: [3, 6, 9, 12]
+out_features: [3, 6, 9, 12]  # which layers to use for the embeddings
 
 loss:
   use_msge: true
-  msge_weight: 1.0
+  msge_weight: 2.0
 
 early_stopping:
   patience: 50
   min_delta: 0
-
-img_standardization:
-  do_standardize: false  # not used here.
-  do_destandardize: false
 
 wandb:
   project: "CV2023-share"

@@ -67,8 +67,6 @@ class RestorationLitModule(LightningModule):
         )  # True --> we additionally log the hyperparameter
 
         self.model = model
-        # XXX: we only use the config for standardization
-        # but maybe also for something else in the future? yes the learning rate
         self.config = config
 
         # loss function
