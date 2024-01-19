@@ -47,6 +47,7 @@ class BaseDataModule(LightningDataModule):
         pin_memory: bool = False,
         persistent_workers: bool = True,
         oversample: bool = False,
+        augment: bool = False,
         data_limit: int = sys.maxsize,
     ) -> None:
         """Initialize a DataModule.
@@ -75,6 +76,7 @@ class BaseDataModule(LightningDataModule):
         self.data_limit = self.hparams.data_limit
 
         self.oversample = self.hparams.oversample
+        self.augment = self.hparams.augment
 
     def prepare_data(self) -> None:
         """Download data if needed. Lightning ensures that `self.prepare_data()` is called only

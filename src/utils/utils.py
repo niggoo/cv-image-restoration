@@ -1,6 +1,7 @@
 import warnings
 from importlib.util import find_spec
 from typing import Any, Callable, Dict, Optional, Tuple
+import torch
 
 from omegaconf import DictConfig
 
@@ -119,3 +120,17 @@ def get_metric_value(
     log.info(f"Retrieved metric value! <{metric_name}={metric_value}>")
 
     return metric_value
+
+def mixup(batch: tuple[torch.Tensor, torch.Tensor], alpha: float):
+    """Mixup data augmentation.
+    :param batch: A tuple containing the batch of data.
+    :param h: The mixup hyperparameter.
+    :return: The mixed batch.
+    """
+    x, gt = batch
+    batch_size = x.size(0)
+    index = torch.randperm(batch_size)
+    lam = torch.distributions.beta.Beta(alpha, alpha).sample().to(x.device)
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    mixed_gt = lam * gt + (1 - lam) * gt[index, :]
+    return mixed_x, gt

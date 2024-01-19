@@ -9,6 +9,7 @@ from torchmetrics.image import StructuralSimilarityIndexMeasure
 from einops import rearrange
 
 from src.utils.metrics import MSGE
+from src.utils.utils import mixup
 
 
 class RestorationLitModule(LightningModule):
@@ -68,6 +69,11 @@ class RestorationLitModule(LightningModule):
 
         self.model = model
         self.config = config
+
+        # preprocessing
+        if hasattr(self.config, "mixup"):
+            self.p_mixup = self.config.mixup.prob
+            self.a_mixup = self.config.mixup.alpha
 
         # loss function
         self.mse = nn.MSELoss()
@@ -164,6 +170,10 @@ class RestorationLitModule(LightningModule):
         :param batch_idx: The index of the current batch.
         :return: A tensor of losses between model predictions and targets.
         """
+        # preprocessing
+        if self.h_mix != 1.0:
+            batch = mixup(batch, h_mix=self.h_mix)
+
         loss, preds, targets = self.model_step(batch)
 
         # update and log metrics

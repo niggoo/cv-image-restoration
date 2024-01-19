@@ -21,7 +21,7 @@ class DptDataSet(Dataset):
         self,
         data_paths: dict,
         norm_stat: torch.Tensor,
-        augment: bool = True,
+        augment: bool = False,
         data_limit: int = sys.maxsize,
     ):
         super().__init__()
@@ -133,13 +133,13 @@ class DptImageDataModule(BaseDataModule):
             torch.save(norm_stats, ns_path)
 
         self.data_train: Optional[Dataset] = DptDataSet(
-            data_paths[:train_size], norm_stats, self.data_limit
+            data_paths[:train_size], norm_stats, self.augment, self.data_limit
         )
         self.data_val: Optional[Dataset] = DptDataSet(
-            data_paths[train_size : train_size + val_size], norm_stats, self.data_limit
+            data_paths[train_size : train_size + val_size], norm_stats, data_limit=self.data_limit
         )
         self.data_test: Optional[Dataset] = DptDataSet(
-            data_paths[train_size + val_size :], norm_stats, self.data_limit
+            data_paths[train_size + val_size :], norm_stats, data_limit=self.data_limit
         )
 
         self.data_paths = data_paths

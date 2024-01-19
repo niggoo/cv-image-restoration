@@ -16,11 +16,16 @@ precision: "32"
 
 device:
   type: "cuda" # "cuda", "cpu"; null means auto-select cuda if available, else cpu
-  ids: [0, 1, 2, 3] # [0], [0,1,2,3], [1,2,3]; null means auto-select all available GPUs
+  ids: [0] # [0], [0,1,2,3], [1,2,3]; null means auto-select all available GPUs
 
 data:
   limit: null # sys.maxsize = 9223372036854775807
   oversample: false
+  augment: true
+
+mixup:
+  alpha: 1.0  # hyperparameter for beta distribution default: 1.0
+  prob: 0.5  # probability of applying mixup
 
 datamodule: "DPTImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "DPTImageDataModule"
 

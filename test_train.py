@@ -241,6 +241,7 @@ def get_datamodule(config):
             pin_memory=config.pin_memory,
             data_limit=data_limit,
             oversample=config.data.oversample,
+            augment=config.data.augment,
         )
     else:
         raise ValueError(f"Unknown datamodule parameter given: {config.datamodule}!")
