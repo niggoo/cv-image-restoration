@@ -21,35 +21,56 @@ DINO_SIZE_MAP = {
 
 def parse_args_and_validate():
     valid_models = ["conv_decoder", "unet", "dpt"]
-    parser = argparse.ArgumentParser(description='''This script is used for inference with different models.
+    parser = argparse.ArgumentParser(
+        description="""This script is used for inference with different models.
         Focal planes of integral images should be at 0m, -0.5m, -1m, -1.5m in that order and 512x512 pixels.
         Example usage:
         > python test.py --model conv_decoder --ckpt /path/to/file/conv_decoder.ckpt --output output.png --images image1.png image2.png image3.png image4.png
         > python test.py --model unet --ckpt /path/to/file/unet.ckpt --images path/to/folder/with/images
-        > python test.py --model dpt --ckpt /path/to/file/dpt.ckpt''', formatter_class=argparse.RawTextHelpFormatter)
+        > python test.py --model dpt --ckpt /path/to/file/dpt.ckpt""",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
 
-    parser.add_argument("--model", type=str, required=True,
-                        choices=valid_models,
-                        help="Model to use for inference (conv_decoder, unet, dpt)")
-    parser.add_argument("--ckpt", type=str, required=True,
-                        help="Path to checkpoint corresponding to the model")
-    parser.add_argument("--output", type=str, default="output.png",
-                        help="Path to save the output image, default: output.png")
-    parser.add_argument("--images", nargs="+", default=["real_focal_stack"],
-                        help="Either a list of 4 integral images or a directory containing those, default: "
-                             "./real_focal_stack")
+    parser.add_argument(
+        "--model",
+        type=str,
+        required=True,
+        choices=valid_models,
+        help="Model to use for inference (conv_decoder, unet, dpt)",
+    )
+    parser.add_argument(
+        "--ckpt",
+        type=str,
+        required=True,
+        help="Path to checkpoint corresponding to the model",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="output.png",
+        help="Path to save the output image, default: output.png",
+    )
+    parser.add_argument(
+        "--images",
+        nargs="+",
+        default=["real_focal_stack"],
+        help="Either a list of 4 integral images or a directory containing those, default: "
+        "./real_focal_stack",
+    )
     args = parser.parse_args()
 
     # validate the arguments
 
     if args.model not in valid_models:
-        raise ValueError(f"Unknown model: {args.model}, valid models are: {valid_models}")
+        raise ValueError(
+            f"Unknown model: {args.model}, valid models are: {valid_models}"
+        )
     if not os.path.isfile(args.ckpt):
         raise ValueError(f"Checkpoint not found: {args.ckpt}")
     # Check if the provided images argument is a directory
     if len(args.images) == 1 and os.path.isdir(args.images[0]):
         # If it's a directory, search for image files in the directory
-        image_files = glob.glob(os.path.join(args.images[0], '*.png'))
+        image_files = glob.glob(os.path.join(args.images[0], "*.png"))
     else:
         image_files = args.images
     if len(image_files) < 4:
@@ -58,7 +79,7 @@ def parse_args_and_validate():
         while len(image_files) < 4:
             image_files.append(image_files[-1])
     elif len(image_files) > 4:
-        print(f"Found more than 4 images")
+        print("Found more than 4 images")
         print("The first 4 images will be used")
     args.images = image_files[:4]  # Select the first 4 images
 
@@ -68,22 +89,28 @@ def parse_args_and_validate():
 def plot_output(args, output):
     fig = plt.figure(figsize=(20, 10))
     focal_lengths = [0, 0.5, 1.0, 1.5]
-    fig.text(0.1, 0.72, 'Input', ha='center', va='center', rotation='vertical', fontsize=20)
+    fig.text(
+        0.1, 0.72, "Input", ha="center", va="center", rotation="vertical", fontsize=20
+    )
 
     title = {"conv_decoder": "Convolutional Decoder", "unet": "U-Net", "dpt": "DPT"}
 
-    fig.text(0.5, 0.95, f'Model: {title[args.model]}', ha='center', va='center', fontsize=20)
+    fig.text(
+        0.5, 0.95, f"Model: {title[args.model]}", ha="center", va="center", fontsize=20
+    )
 
     for idx, image_path in enumerate(args.images):
         ax = fig.add_subplot(2, 4, idx + 1)
         ax.imshow(Image.open(image_path).resize((512, 512)), cmap="gray")
         ax.axis("off")
-        ax.set_title(f'Focal length {focal_lengths[idx]}')
+        ax.set_title(f"Focal length {focal_lengths[idx]}")
 
     ax = fig.add_subplot(2, 4, 5)
     ax.imshow(output.cpu().numpy().squeeze(), cmap="gray")
     ax.axis("off")
-    fig.text(0.1, 0.28, 'Output', ha='center', va='center', rotation='vertical', fontsize=20)
+    fig.text(
+        0.1, 0.28, "Output", ha="center", va="center", rotation="vertical", fontsize=20
+    )
     return plt
 
 
@@ -96,19 +123,25 @@ def main():
     # load checkpoint
     checkpoint = torch.load(args.ckpt, map_location=device)
 
-    # rename state dict keys by removing "model." prefix 
+    # rename state dict keys by removing "model." prefix
     # because the model was saved using pytorch lightning - slightly different structure to default pytorch
     # lightning adds optimizer and scheduler state dicts to the checkpoint
-    checkpoint["state_dict"] = {k.replace("model.", "", 1): v for k, v in checkpoint["state_dict"].items()}
+    checkpoint["state_dict"] = {
+        k.replace("model.", "", 1): v for k, v in checkpoint["state_dict"].items()
+    }
     #
 
-    if args.model == "unet" or args.model == "dpt":  # unet and dpt have same forward pass
-
+    if (
+        args.model == "unet" or args.model == "dpt"
+    ):  # unet and dpt have same forward pass
         if args.model == "unet":
             from src.model.unet.unet import UNet
+
             model = UNet()
             model.load_state_dict(checkpoint["state_dict"])
-            img_standardization = checkpoint["hyper_parameters"]["config"]["img_standardization"]
+            img_standardization = checkpoint["hyper_parameters"]["config"][
+                "img_standardization"
+            ]
             if img_standardization["do_destandardize"] is True:
                 # load the mean and std from the checkpoint
                 mean_ckpt = img_standardization["mean"]
@@ -120,18 +153,28 @@ def main():
             # load images (same as in src/data/image_datamodule.py)
             integral_images = (
                 torch.stack(
-                    [torchvision.io.read_image(image, ImageReadMode.GRAY) for image in args.images],
-                    dim=0, ).squeeze().float())
+                    [
+                        torchvision.io.read_image(image, ImageReadMode.GRAY)
+                        for image in args.images
+                    ],
+                    dim=0,
+                )
+                .squeeze()
+                .float()
+            )
             # standardize
             integral_images = (integral_images - mean_ckpt) / std_ckpt
 
         elif args.model == "dpt":
             from src.model.dinov2.dinov2 import Dinov2
             from src.model.dinov2.dpt import DPT
+
             backbone_size = checkpoint["hyper_parameters"]["config"]["backbone_size"]
 
-            dino = Dinov2(dinov2_size=backbone_size,
-                          out_features=checkpoint["hyper_parameters"]["config"]["out_features"])
+            dino = Dinov2(
+                dinov2_size=backbone_size,
+                out_features=checkpoint["hyper_parameters"]["config"]["out_features"],
+            )
             dpt = DPT()
             model = torch.nn.Sequential(dino, dpt)
 
@@ -140,11 +183,19 @@ def main():
             # load images (same as in src/data/dpt_datamodule.py)
             norm_stat = torch.load(os.path.join("src", "data", "norm_stats.pt"))
 
-            norm = torchvision.transforms.Normalize(mean=norm_stat[:, 0], std=norm_stat[:, 1])
+            norm = torchvision.transforms.Normalize(
+                mean=norm_stat[:, 0], std=norm_stat[:, 1]
+            )
             integral_images = norm(
                 torch.stack(
-                    [torchvision.io.read_image(file, ImageReadMode.GRAY).float().squeeze() for file in args.images],
-                    dim=0)
+                    [
+                        torchvision.io.read_image(file, ImageReadMode.GRAY)
+                        .float()
+                        .squeeze()
+                        for file in args.images
+                    ],
+                    dim=0,
+                )
             )
 
         # forward pass (unet or dpt)
@@ -179,7 +230,9 @@ def main():
             inputs = processor(images=image, return_tensors="pt")
             inputs.to(device=device)
             outputs = dino(**inputs)
-            embeddings.append(outputs.last_hidden_state[:, 1:, :])  # remove CLS token and keep only last hidden state
+            embeddings.append(
+                outputs.last_hidden_state[:, 1:, :]
+            )  # remove CLS token and keep only last hidden state
 
         # stack the embeddings
         embeddings = torch.stack(embeddings, dim=1).to(device=device)
@@ -200,4 +253,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

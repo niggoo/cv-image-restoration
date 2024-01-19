@@ -13,10 +13,7 @@ from src.model.dinov2.conv_decoder import ModifiedConvHead as Model
 def plot_images(raw, pred, gt):
     raw = raw * 255
     gt = gt * 255
-    # scale prediction values to [0, 255] using min-max scaling
-    # TODO: is this needed for any of our configs?
-    # pred = pred - pred.min()
-    # pred = pred / pred.max()
+
     pred = pred * 255
     raw = raw.cpu().numpy().astype(int)
     gt = gt.cpu().numpy().astype(int)

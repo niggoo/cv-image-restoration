@@ -9,7 +9,14 @@ from functools import partial
 
 # greatly inspired from the implementation of
 # "https://github.com/facebookresearch/dinov2/blob/main/dinov2/hub/depth/decode_heads.py"
-def resize(input, size=None, scale_factor=None, mode="nearest", align_corners=None, warning=False):
+def resize(
+    input,
+    size=None,
+    scale_factor=None,
+    mode="nearest",
+    align_corners=None,
+    warning=False,
+):
     if warning:
         if size is not None and align_corners:
             input_h, input_w = tuple(int(x) for x in input.shape[2:])
@@ -207,7 +214,9 @@ class ConvModule(nn.Module):
                 nonlinearity = "relu"
                 a = 0
             if hasattr(self.conv, "weight") and self.conv.weight is not None:
-                nn.init.kaiming_normal_(self.conv.weight, a=a, mode="fan_out", nonlinearity=nonlinearity)
+                nn.init.kaiming_normal_(
+                    self.conv.weight, a=a, mode="fan_out", nonlinearity=nonlinearity
+                )
             if hasattr(self.conv, "bias") and self.conv.bias is not None:
                 nn.init.constant_(self.conv.bias, 0)
         if self.with_norm:
@@ -238,7 +247,12 @@ class Interpolate(nn.Module):
         self.align_corners = align_corners
 
     def forward(self, x):
-        x = self.interp(x, scale_factor=self.scale_factor, mode=self.mode, align_corners=self.align_corners)
+        x = self.interp(
+            x,
+            scale_factor=self.scale_factor,
+            mode=self.mode,
+            align_corners=self.align_corners,
+        )
         return x
 
 
@@ -271,14 +285,26 @@ class ReassembleBlocks(nn.Module):
         self.resize_layers = nn.ModuleList(
             [
                 nn.ConvTranspose2d(
-                    in_channels=out_channels[0], out_channels=out_channels[0], kernel_size=4, stride=4, padding=0
+                    in_channels=out_channels[0],
+                    out_channels=out_channels[0],
+                    kernel_size=4,
+                    stride=4,
+                    padding=0,
                 ),
                 nn.ConvTranspose2d(
-                    in_channels=out_channels[1], out_channels=out_channels[1], kernel_size=2, stride=2, padding=0
+                    in_channels=out_channels[1],
+                    out_channels=out_channels[1],
+                    kernel_size=2,
+                    stride=2,
+                    padding=0,
                 ),
                 nn.Identity(),
                 nn.Conv2d(
-                    in_channels=out_channels[3], out_channels=out_channels[3], kernel_size=3, stride=2, padding=1
+                    in_channels=out_channels[3],
+                    out_channels=out_channels[3],
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
                 ),
             ]
         )
@@ -350,7 +376,9 @@ class FeatureFusionBlock(nn.Module):
             Default: True.
     """
 
-    def __init__(self, in_channels, act_layer, norm_layer, expand=False, align_corners=True):
+    def __init__(
+        self, in_channels, act_layer, norm_layer, expand=False, align_corners=True
+    ):
         super(FeatureFusionBlock, self).__init__()
 
         self.in_channels = in_channels
@@ -361,7 +389,13 @@ class FeatureFusionBlock(nn.Module):
         if self.expand:
             self.out_channels = in_channels // 2
 
-        self.project = ConvModule(self.in_channels, self.out_channels, kernel_size=1, act_layer=None, bias=True)
+        self.project = ConvModule(
+            self.in_channels,
+            self.out_channels,
+            kernel_size=1,
+            act_layer=None,
+            bias=True,
+        )
 
         self.res_conv_unit1 = PreActResidualConvUnit(
             in_channels=self.in_channels, act_layer=act_layer, norm_layer=norm_layer
@@ -374,7 +408,12 @@ class FeatureFusionBlock(nn.Module):
         x = inputs[0]
         if len(inputs) == 2:
             if x.shape != inputs[1].shape:
-                res = resize(inputs[1], size=(x.shape[2], x.shape[3]), mode="bilinear", align_corners=False)
+                res = resize(
+                    inputs[1],
+                    size=(x.shape[2], x.shape[3]),
+                    mode="bilinear",
+                    align_corners=False,
+                )
             else:
                 res = inputs[1]
             x = x + self.res_conv_unit1(res)
@@ -400,7 +439,7 @@ class DPT(nn.Module):
 
     def __init__(
         self,
-        embed_dims=384,
+        embed_dims=768,
         channels=48,
         post_process_channels=[48, 96, 192, 384],
         expand_channels=False,
@@ -413,23 +452,43 @@ class DPT(nn.Module):
         self.reassemble_blocks = ReassembleBlocks(embed_dims, post_process_channels)
 
         self.post_process_channels = [
-            channel * math.pow(2, i) if expand_channels else channel for i, channel in enumerate(post_process_channels)
+            channel * math.pow(2, i) if expand_channels else channel
+            for i, channel in enumerate(post_process_channels)
         ]
         self.convs = nn.ModuleList()
         for channel in self.post_process_channels:
-            self.convs.append(ConvModule(channel, self.channels, kernel_size=3, padding=1, act_layer=None, bias=False))
+            self.convs.append(
+                ConvModule(
+                    channel,
+                    self.channels,
+                    kernel_size=3,
+                    padding=1,
+                    act_layer=None,
+                    bias=False,
+                )
+            )
         self.fusion_blocks = nn.ModuleList()
         for _ in range(len(self.convs)):
             self.fusion_blocks.append(FeatureFusionBlock(self.channels, nn.ReLU, None))
         self.fusion_blocks[0].res_conv_unit1 = None
-        self.project = ConvModule(self.channels, self.channels, kernel_size=3, padding=1, norm_layer=None)
+        self.project = ConvModule(
+            self.channels, self.channels, kernel_size=3, padding=1, norm_layer=None
+        )
         self.head = nn.Sequential(
-            nn.Conv2d(self.channels, self.channels // 2, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(
+                self.channels, self.channels // 2, kernel_size=3, stride=1, padding=1
+            ),
             Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
-            nn.Conv2d(self.channels // 2, self.channels // 4, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(
+                self.channels // 2,
+                self.channels // 4,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
             nn.ReLU(True),
             nn.Conv2d(self.channels // 4, 1, kernel_size=1, stride=1, padding=0),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
         self.num_fusion_blocks = len(self.fusion_blocks)
         self.num_reassemble_blocks = len(self.reassemble_blocks.resize_layers)
@@ -454,7 +513,9 @@ class DPT(nn.Module):
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     module = DPT(embed_dims=384, post_process_channels=[48, 96, 192, 384]).to(device)
-    mock = [(torch.rand((4, 384, 32, 32)).to(device), torch.rand(4, 384)) for _ in range(4)]
+    mock = [
+        (torch.rand((4, 384, 32, 32)).to(device), torch.rand(4, 384)) for _ in range(4)
+    ]
     # torchinfo.summary(module, mock[0].shape)
     mock = module(mock)
     print(mock.shape)

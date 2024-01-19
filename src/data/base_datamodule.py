@@ -47,7 +47,7 @@ class BaseDataModule(LightningDataModule):
         pin_memory: bool = False,
         persistent_workers: bool = True,
         oversample: bool = False,
-        data_limit: int = sys.maxsize
+        data_limit: int = sys.maxsize,
     ) -> None:
         """Initialize a DataModule.
 
@@ -110,12 +110,7 @@ class BaseDataModule(LightningDataModule):
             poses = torch.zeros(train_size)
 
             # Convert pose to integer
-            pose2id = {
-                "no person": 0,
-                "idle": 1,
-                "laying": 2,
-                "sitting": 3
-            }
+            pose2id = {"no person": 0, "idle": 1, "laying": 2, "sitting": 3}
             # Regex for extracting the pose
             pose_reg = re.compile(r"person shape =  (.*)\n")
 
@@ -128,14 +123,18 @@ class BaseDataModule(LightningDataModule):
                 if "person shape" in params:
                     pose = pose_reg.search(params).group(1)
                     poses[p] = pose2id[pose]
-            
+
             # Get pose frequencies
-            _, ids, counts = torch.unique(poses, return_counts=True, return_inverse=True)
+            _, ids, counts = torch.unique(
+                poses, return_counts=True, return_inverse=True
+            )
             # Invert frequencies and get the weight for every sample
             # Every class should sum up to 1
-            sample_weights = (1 / counts)[ids] 
+            sample_weights = (1 / counts)[ids]
 
-            sampler = torch.utils.data.sampler.WeightedRandomSampler(sample_weights, len(sample_weights), replacement=True)
+            sampler = torch.utils.data.sampler.WeightedRandomSampler(
+                sample_weights, len(sample_weights), replacement=True
+            )
         else:
             sampler = None
 

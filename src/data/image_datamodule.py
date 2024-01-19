@@ -9,10 +9,6 @@ from torchvision.io import ImageReadMode
 
 from src.data.base_datamodule import BaseDataModule
 
-# For debugging poses
-#from base_datamodule import BaseDataModule
-#import re
-
 class ImageDataSet(Dataset):
     def __init__(self, data_paths: dict, mean, std, data_limit:int = sys.maxsize):
         super().__init__()
@@ -21,8 +17,6 @@ class ImageDataSet(Dataset):
         self.std = std
         self.data_limit = data_limit
 
-        #DEBUG poses
-        #self.pose_reg = re.compile(r"person shape =  (.*)\n")
 
     def __len__(self):
         return min(len(self.data_paths), self.data_limit)
@@ -62,18 +56,6 @@ class ImageDataSet(Dataset):
             (integral_images - self.mean) / self.std
         ), gt / 255.0  # "normalize" to [0, 1]
     
-        #DEBUG poses
-        # with open(sample["parameters"]) as file:
-        #     params = file.read()
-        
-        # if "person shape" in params:
-        #     pose = self.pose_reg.search(params).group(1)
-        # else:
-        #     pose = "no person"
-        
-        # return pose
-
-
 class ImageDataModule(BaseDataModule):
     def __init__(
         self,
