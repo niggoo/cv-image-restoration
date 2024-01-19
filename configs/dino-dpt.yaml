@@ -1,7 +1,7 @@
 description: "Restores air-images of person in a forest using Dinov2 Encoder and DPT Decoder"
 
 # Training parameters
-batch_size: 32
+batch_size: 8
 grad_accum_steps: 1
 n_epochs: 150
 max_grad_norm: 0.0
@@ -33,6 +33,7 @@ model: "DPT" # "UNet", "ModifiedConvHead", "DPT"
 backbone_size: "small"  # small, base, large
 freeze_encoder: True # freezes all non-embedding layers of the encoder
 out_features: [3, 6, 9, 12]  # which layers to use for the embeddings
+skip: True # True -> use skip connections from  input to output
 
 loss:
   use_msge: true
@@ -42,6 +43,7 @@ early_stopping:
   patience: 50
   min_delta: 0
 
+logging: True
 wandb:
   project: "CV2023-share"
   entity: "cv2023-a6"

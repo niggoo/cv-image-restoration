@@ -29,7 +29,7 @@ class DptDataSet(Dataset):
         self.data_limit = data_limit
         # standard data augmentation
         self.augment = augment
-        self.norm = v2.Normalize(mean=norm_stat[:, 0], std=norm_stat[:, 1]),
+        self.norm = transforms.Normalize(mean=norm_stat[:, 0], std=norm_stat[:, 1])
         
 
     def __len__(self):
@@ -66,16 +66,16 @@ class DptDataSet(Dataset):
             # random flip
             if random.random() > 0.5:
                 integral_images = v2.functional.horizontal_flip_image(integral_images)
-                gt = transforms.functional.hflip(integral_images)
+                gt = transforms.functional.hflip(gt)
             if random.random() > 0.5:
                 integral_images = transforms.functional.vflip(integral_images)
-                gt = transforms.functional.vflip(integral_images)
+                gt = transforms.functional.vflip(gt)
             if random.random() > 0.5:
-                i, j, w, h = v2.RandomResizedCrop().get_params(
+                i, j, w, h = v2.RandomResizedCrop.get_params(
                     integral_images, scale=(0.6, 1.0), ratio=(1, 1)
                 )
-                integral_images = v2.functional.resized_crop(integral_images, i, j, w, h, 512)
-                gt = v2.functional.resized_crop(gt, i, j, w, h, 512)
+                integral_images = v2.functional.resized_crop(integral_images, i, j, w, h, 512, antialias=False)
+                gt = v2.functional.resized_crop(gt, i, j, w, h, 512, antialias=False)
 
         return integral_images, gt / 255.0  # scale to [0, 1]
 

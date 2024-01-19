@@ -36,8 +36,7 @@ DINO_SIZE_MAP = {
 
 
 @hydra.main(version_base=None, config_path="./configs/", config_name="dino-dpt")
-def main(cfg: DictConfig):
-    config = cfg
+def main(config: DictConfig):
     # set seeds for numpy, torch and python.random
     seed_everything(420, workers=True)
     torch.autograd.set_detect_anomaly(True)
@@ -61,16 +60,24 @@ def main(cfg: DictConfig):
         config=config,
         model=net,
     )
+    callbacks = []
+
     # create monitor to keep track of learning rate - we want to check the behaviour of our learning rate schedule
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
+    callbacks.append(lr_monitor)
+
     # sets Checkpointing dependency to loss -> we keep the best 2 model according to loss
     checkpoint_callback = ModelCheckpoint(
         monitor="val/loss", every_n_epochs=1, save_last=True, save_top_k=1
     )
+    callbacks.append(checkpoint_callback)
 
-    image_logging_callback = ImageLoggingCallback(
-        datamodule, num_samples=100, wandb_logger=wandb_logger
-    )
+    if config.logging:
+        image_logging_callback = ImageLoggingCallback(
+            datamodule, num_samples=100, wandb_logger=wandb_logger
+        )
+        callbacks.append(image_logging_callback)
+
     early_stop_callback = EarlyStopping(
         monitor="val/loss",
         min_delta=config.early_stopping.min_delta,
@@ -79,20 +86,16 @@ def main(cfg: DictConfig):
         mode="min",
         log_rank_zero_only=True,
     )
+    callbacks.append(early_stop_callback)
 
     # create the pytorch lightening trainer by specifying the number of epochs to train, the logger,
     # on which kind of device(s) to train and possible callbacks as well as set up for Mixed Precision
     trainer = L.Trainer(
         max_epochs=config.n_epochs,
-        logger=wandb_logger,
-        callbacks=[
-            lr_monitor,
-            checkpoint_callback,
-            image_logging_callback,
-            early_stop_callback,
-        ],
+        logger=wandb_logger if config.logging else None,
+        callbacks=callbacks,
         default_root_dir=None,  # change dirc if needed
-        precision=cfg.precision if hasattr(cfg, "precision") else "32",
+        precision=config.precision if hasattr(config, "precision") else "32",
         gradient_clip_val=config.max_grad_norm,  # 0. means no clipping
         accumulate_grad_batches=config.grad_accum_steps,
         log_every_n_steps=50,
@@ -130,6 +133,7 @@ def get_model(config):
             dinov2_size=config.backbone_size,
             out_features=config.out_features,
             freeze_encoder=config.freeze_encoder,
+            skip=config.skip,
         )
         dpt = DPT(embed_dims=DINO_SIZE_MAP[config.backbone_size])
         return torch.nn.Sequential(dino, dpt)

@@ -34,6 +34,7 @@ early_stopping:
   patience: 50
   min_delta: 0
 
+logging: True
 wandb:
   project: "CV2023-share"
   entity: "cv2023-a6"

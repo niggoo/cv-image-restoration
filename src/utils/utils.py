@@ -133,4 +133,4 @@ def mixup(batch: tuple[torch.Tensor, torch.Tensor], alpha: float):
     lam = torch.distributions.beta.Beta(alpha, alpha).sample().to(x.device)
     mixed_x = lam * x + (1 - lam) * x[index, :]
     mixed_gt = lam * gt + (1 - lam) * gt[index, :]
-    return mixed_x, gt
+    return mixed_x, mixed_gt

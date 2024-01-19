@@ -497,6 +497,10 @@ class DPT(nn.Module):
         assert self.num_reassemble_blocks == self.num_post_process_channels
 
     def forward(self, inputs):
+        """
+        Inputs should be a tuple with list of features from the ViT backbone and the skip connection
+        """
+        inputs, skip = inputs
         assert len(inputs) == self.num_reassemble_blocks
         x = [inp for inp in inputs]
         x = self.reassemble_blocks(x)
@@ -506,7 +510,7 @@ class DPT(nn.Module):
             out = self.fusion_blocks[i](out, x[-(i + 1)])
         out = self.project(out)
         out = self.head(out)
-
+        out = out + skip if skip is not None else out  # fuse skip connection
         return out
 
 

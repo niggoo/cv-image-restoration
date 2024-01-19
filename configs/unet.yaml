@@ -41,6 +41,7 @@ img_standardization:
   mean: 109.1209
   std: 18.0851
 
+logging: True
 wandb:
   project: "CV2023-share"
   entity: "cv2023-a6"

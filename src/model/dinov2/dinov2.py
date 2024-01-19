@@ -11,6 +11,7 @@ class Dinov2(nn.Module):
         out_features: list = [3, 6, 9, 12],
         freeze_encoder: bool = True,
         channels: int = 4,
+        skip: bool = False,
     ) -> None:
         """Dinov2 model with a selection of output features
 
@@ -33,6 +34,18 @@ class Dinov2(nn.Module):
         if freeze_encoder:
             for param in self.model.encoder.parameters():
                 param.requires_grad = False
+        # skip connection
+        if skip:
+            self.skip = nn.Conv2d(
+                in_channels=channels,
+                out_channels=1,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias=False,
+            )
+        else:
+            self.skip = None
 
     def forward(self, x):
         """
@@ -43,6 +56,8 @@ class Dinov2(nn.Module):
         """
         # save shape for later
         B, _, w, h = x.shape
+        # skip connection
+        s = self.skip(x) if self.skip is not None else None
         # get features and select the relevant stages
         x = self.model(x)
         # reformat output
@@ -61,7 +76,7 @@ class Dinov2(nn.Module):
             )
             for seq, cls in outputs
         ]
-        return outputs
+        return outputs, s
 
 
 if __name__ == "__main__":

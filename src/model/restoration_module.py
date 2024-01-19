@@ -1,4 +1,5 @@
 from typing import Any, Dict, Tuple
+import random
 
 import torch
 import torch.nn as nn
@@ -131,7 +132,8 @@ class RestorationLitModule(LightningModule):
         """
         x, gt = batch
         restored = self.forward(x)
-        if self.config.img_standardization.do_destandardize:
+
+        if hasattr(self.config, "img_standardization") and self.config.img_standardization.do_destandardize:
             restored = (
                 restored * 255 * self.config.img_standardization.std
             ) + self.config.img_standardization.mean
@@ -171,8 +173,8 @@ class RestorationLitModule(LightningModule):
         :return: A tensor of losses between model predictions and targets.
         """
         # preprocessing
-        if self.h_mix != 1.0:
-            batch = mixup(batch, h_mix=self.h_mix)
+        if  random.random() < self.p_mixup:
+            batch = mixup(batch, alpha=self.a_mixup)
 
         loss, preds, targets = self.model_step(batch)
 
