@@ -1,7 +1,7 @@
 description: "Restores air-images of person in a forest using Dinov2 Encoder and DPT Decoder"
 
 # Training parameters
-batch_size: 8
+batch_size: 32
 grad_accum_steps: 1
 n_epochs: 150
 max_grad_norm: 0.0
@@ -16,7 +16,7 @@ precision: "32"
 
 device:
   type: "cuda" # "cuda", "cpu"; null means auto-select cuda if available, else cpu
-  ids: [0] # [0], [0,1,2,3], [1,2,3]; null means auto-select all available GPUs
+  ids:  [0,1,2,3] # [0], [0,1,2,3], [1,2,3]; null means auto-select all available GPUs
 
 data:
   limit: null # sys.maxsize = 9223372036854775807
@@ -25,7 +25,7 @@ data:
 
 mixup:
   alpha: 1.0  # hyperparameter for beta distribution default: 1.0
-  prob: 0.5  # probability of applying mixup
+  prob: 0.0  # probability of applying mixup
 
 datamodule: "DPTImageDataModule" # "EmbeddingDataModule", "ImageDataModule", "DPTImageDataModule"
 
@@ -33,7 +33,7 @@ model: "DPT" # "UNet", "ModifiedConvHead", "DPT"
 backbone_size: "small"  # small, base, large
 freeze_encoder: True # freezes all non-embedding layers of the encoder
 out_features: [3, 6, 9, 12]  # which layers to use for the embeddings
-skip: True # True -> use skip connections from  input to output
+skip: False # True -> use skip connections from  input to output
 
 loss:
   use_msge: true
@@ -49,4 +49,4 @@ wandb:
   entity: "cv2023-a6"
   group: "DINO DPT"
   notes: "Testing DINO with DPT"
-  experiment_name: "Small 5e-5 MSGE 2.0"
+  experiment_name: "Small 5e-5 MSGE 2.0 + FlipCrop"

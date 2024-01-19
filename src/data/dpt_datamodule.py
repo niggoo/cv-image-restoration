@@ -1,19 +1,19 @@
+import json
 import os.path
+import random
 import sys
+from typing import Optional
 
 import torch
-import numpy as np
-
-from src.data.base_datamodule import BaseDataModule
-import json
-from typing import Optional, Tuple
-import random
 import torchvision
+import torchvision.transforms as transforms
+import torchvision.transforms.functional as TF
 from torch.utils.data import Dataset, random_split
 from torchvision.io import ImageReadMode
-from torchvision.transforms import v2
-import torchvision.transforms as transforms
+from torchvision.transforms import RandomResizedCrop
 from tqdm import tqdm
+
+from src.data.base_datamodule import BaseDataModule
 
 
 class DptDataSet(Dataset):
@@ -30,7 +30,6 @@ class DptDataSet(Dataset):
         # standard data augmentation
         self.augment = augment
         self.norm = transforms.Normalize(mean=norm_stat[:, 0], std=norm_stat[:, 1])
-        
 
     def __len__(self):
         return min(len(self.data_paths), self.data_limit)
@@ -56,26 +55,32 @@ class DptDataSet(Dataset):
         gt = torchvision.io.read_image(sample["GT"], ImageReadMode.GRAY)
         # load integrals
         integral_images = torch.stack(
-                [torchvision.io.read_image(file, ImageReadMode.GRAY).float().squeeze()
-                    for file in sample["integral_images"][:4]
-                ], dim=0,)
+            [
+                torchvision.io.read_image(file, ImageReadMode.GRAY).float().squeeze()
+                for file in sample["integral_images"][:4]
+            ],
+            dim=0,
+        )
         # normalize
         integral_images = self.norm(integral_images)
         # standard augmentation
         if self.augment:
             # random flip
             if random.random() > 0.5:
-                integral_images = v2.functional.horizontal_flip_image(integral_images)
-                gt = transforms.functional.hflip(gt)
+                integral_images = TF.hflip(integral_images)
+                gt = TF.hflip(gt)
             if random.random() > 0.5:
-                integral_images = transforms.functional.vflip(integral_images)
-                gt = transforms.functional.vflip(gt)
+                integral_images = TF.vflip(integral_images)
+                gt = TF.vflip(gt)
             if random.random() > 0.5:
-                i, j, w, h = v2.RandomResizedCrop.get_params(
-                    integral_images, scale=(0.6, 1.0), ratio=(1, 1)
+                crop_transform = RandomResizedCrop(
+                    size=512, scale=(0.6, 1.0), ratio=(1, 1)
                 )
-                integral_images = v2.functional.resized_crop(integral_images, i, j, w, h, 512, antialias=False)
-                gt = v2.functional.resized_crop(gt, i, j, w, h, 512, antialias=False)
+                i, j, h, w = crop_transform.get_params(
+                    integral_images, crop_transform.scale, crop_transform.ratio
+                )
+                integral_images = TF.resized_crop(integral_images, i, j, h, w, size=512)
+                gt = TF.resized_crop(gt, i, j, h, w, size=512)
 
         return integral_images, gt / 255.0  # scale to [0, 1]
 
@@ -100,7 +105,6 @@ def calc_norm(data_paths: list):
 
 
 class DptImageDataModule(BaseDataModule):
-
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
 
@@ -136,7 +140,9 @@ class DptImageDataModule(BaseDataModule):
             data_paths[:train_size], norm_stats, self.augment, self.data_limit
         )
         self.data_val: Optional[Dataset] = DptDataSet(
-            data_paths[train_size : train_size + val_size], norm_stats, data_limit=self.data_limit
+            data_paths[train_size : train_size + val_size],
+            norm_stats,
+            data_limit=self.data_limit,
         )
         self.data_test: Optional[Dataset] = DptDataSet(
             data_paths[train_size + val_size :], norm_stats, data_limit=self.data_limit

@@ -7,3 +7,6 @@ transformers
 safetensors
 pillow
 rich
+matplotlib
+torchinfo
+einops
