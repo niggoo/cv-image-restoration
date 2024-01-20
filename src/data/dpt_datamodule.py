@@ -69,18 +69,9 @@ class DptDataSet(Dataset):
             if random.random() > 0.5:
                 integral_images = TF.hflip(integral_images)
                 gt = TF.hflip(gt)
-            if random.random() > 0.5:
+            elif random.random() > 0.5:
                 integral_images = TF.vflip(integral_images)
                 gt = TF.vflip(gt)
-            if random.random() > 0.5:
-                crop_transform = RandomResizedCrop(
-                    size=512, scale=(0.6, 1.0), ratio=(1, 1)
-                )
-                i, j, h, w = crop_transform.get_params(
-                    integral_images, crop_transform.scale, crop_transform.ratio
-                )
-                integral_images = TF.resized_crop(integral_images, i, j, h, w, size=512)
-                gt = TF.resized_crop(gt, i, j, h, w, size=512)
 
         return integral_images, gt / 255.0  # scale to [0, 1]
 

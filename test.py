@@ -4,7 +4,7 @@
 #  python test.py --model dpt --ckpt /path/to/file.ckpt --mode testset --images path/to/json/file --output path/to/output/folder
 # options for --model: conv_decoder, unet, dpt
 # --ckpt: path to checkpoint
-# --images: 
+# --images:
 #   --mode single:
 #       must be 4 aos integrated images with focal planes in the order: 0m, -0,5m, -1m, -1,5m or folder with the 4 images
 #  --mode testset:
@@ -21,7 +21,6 @@ from torchvision.io import ImageReadMode
 from transformers import AutoImageProcessor, AutoModel
 import matplotlib.pyplot as plt
 from PIL import Image
-from src.model.postprocess import threshold_func, sharpen_filter
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import logging
@@ -65,20 +64,21 @@ def parse_args_and_validate():
         "--output",
         type=str,
         default="output.png",
-        help="Path to save the output image, default: output.png",
+        help="Path to save the output image, default: output.png or in testset mode: output/",
     )
     parser.add_argument(
         "--mode",
         type=str,
         default="single",
-        help="Mode to run the script in, either single or testset, default: single")
+        help="Mode to run the script in, either single or testset, default: single",
+    )
     parser.add_argument(
         "--images",
         nargs="+",
         default=["real_focal_stack"],
         help="single mode: Either a list of 4 integral images or a directory containing those, default: "
-             "./real_focal_stack"
-             "testset mode: Path to json file containing the data paths of the test set",
+        "./real_focal_stack"
+        "testset mode: Path to json file containing the data paths of the test set",
     )
     args = parser.parse_args()
 
@@ -91,12 +91,14 @@ def parse_args_and_validate():
     if not os.path.isfile(args.ckpt):
         raise ValueError(f"Checkpoint not found: {args.ckpt}")
     if args.mode not in ["single", "testset"]:
-        raise ValueError(f"Unknown mode: {args.mode}, valid modes are: single and testset")
+        raise ValueError(
+            f"Unknown mode: {args.mode}, valid modes are: single and testset"
+        )
     # Check if the provided images argument is a directory
     if args.mode == "single":
         if len(args.images) == 1 and os.path.isdir(args.images[0]):
             # If it's a directory, search for image files in the directory
-            image_files = glob.glob(os.path.join(args.images[0], '*.png'))
+            image_files = glob.glob(os.path.join(args.images[0], "*.png"))
         else:
             image_files = args.images
         if len(image_files) < 4:
@@ -105,7 +107,7 @@ def parse_args_and_validate():
             while len(image_files) < 4:
                 image_files.append(image_files[-1])
         elif len(image_files) > 4:
-            print(f"Found more than 4 images")
+            print("Found more than 4 images")
             print("The first 4 images will be used")
         args.images = image_files[:4]  # Select the first 4 images
     else:
@@ -150,23 +152,29 @@ def plot_output(args, output):
 def plot_output_testset(integrals, output, gt):
     fig = plt.figure(figsize=(20, 10))
     focal_lengths = [0, 0.5, 1.0, 1.5]
-    fig.text(0.1, 0.72, 'Input', ha='center', va='center', rotation='vertical', fontsize=20)
+    fig.text(
+        0.1, 0.72, "Input", ha="center", va="center", rotation="vertical", fontsize=20
+    )
 
     for idx, image in enumerate(integrals):
         ax = fig.add_subplot(2, 4, idx + 1)
         ax.imshow(image.cpu().numpy().squeeze(), cmap="gray")
         ax.axis("off")
-        ax.set_title(f'Focal length {focal_lengths[idx]}')
+        ax.set_title(f"Focal length {focal_lengths[idx]}")
 
     ax = fig.add_subplot(2, 4, 5)
     ax.imshow(output.cpu().numpy().squeeze(), cmap="gray")
     ax.axis("off")
-    fig.text(0.1, 0.28, 'Output', ha='center', va='center', rotation='vertical', fontsize=20)
+    fig.text(
+        0.1, 0.28, "Output", ha="center", va="center", rotation="vertical", fontsize=20
+    )
 
     ax = fig.add_subplot(2, 4, 7)
     ax.imshow(Image.open(gt), cmap="gray")
     ax.axis("off")
-    fig.text(0.5, 0.28, 'GT', ha='center', va='center', rotation='vertical', fontsize=20)
+    fig.text(
+        0.5, 0.28, "GT", ha="center", va="center", rotation="vertical", fontsize=20
+    )
     return plt
 
 
@@ -174,25 +182,32 @@ def main():
     args = parse_args_and_validate()
 
     # set the device
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
 
     # load checkpoint
     checkpoint = torch.load(args.ckpt, map_location=device)
 
     # rename state dict keys by removing "model." prefix
     # because the model was saved using pytorch lightning - slightly different structure to default pytorch
-    # lightning adds optimizer and scheduler state dicts to the checkpoint 
-    checkpoint["state_dict"] = {k.replace("model.", "", 1): v for k, v in checkpoint["state_dict"].items()}
+    # lightning adds optimizer and scheduler state dicts to the checkpoint
+    checkpoint["state_dict"] = {
+        k.replace("model.", "", 1): v for k, v in checkpoint["state_dict"].items()
+    }
+    print("Using hyperparameters:", checkpoint["hyper_parameters"])
 
     # single images
     if args.mode == "single":
-        if args.model == "unet" or args.model == "dpt":  # unet and dpt have same forward pass
-
+        if (
+            args.model == "unet" or args.model == "dpt"
+        ):  # unet and dpt have same forward pass
             if args.model == "unet":
                 from src.model.unet.unet import UNet
+
                 model = UNet()
                 model.load_state_dict(checkpoint["state_dict"])
-                img_standardization = checkpoint["hyper_parameters"]["config"]["img_standardization"]
+                img_standardization = checkpoint["hyper_parameters"]["config"][
+                    "img_standardization"
+                ]
                 if img_standardization["do_destandardize"] is True:
                     # load the mean and std from the checkpoint
                     mean_ckpt = img_standardization["mean"]
@@ -204,18 +219,32 @@ def main():
                 # load images (same as in src/data/image_datamodule.py)
                 integral_images = (
                     torch.stack(
-                        [torchvision.io.read_image(image, ImageReadMode.GRAY) for image in args.images],
-                        dim=0, ).squeeze().float())
+                        [
+                            torchvision.io.read_image(image, ImageReadMode.GRAY)
+                            for image in args.images
+                        ],
+                        dim=0,
+                    )
+                    .squeeze()
+                    .float()
+                )
                 # standardize
                 integral_images = (integral_images - mean_ckpt) / std_ckpt
 
             elif args.model == "dpt":
                 from src.model.dinov2.dinov2 import Dinov2
                 from src.model.dinov2.dpt import DPT
-                backbone_size = checkpoint["hyper_parameters"]["config"]["backbone_size"]
 
-                dino = Dinov2(dinov2_size=backbone_size,
-                              out_features=checkpoint["hyper_parameters"]["config"]["out_features"])
+                backbone_size = checkpoint["hyper_parameters"]["config"][
+                    "backbone_size"
+                ]
+
+                dino = Dinov2(
+                    dinov2_size=backbone_size,
+                    out_features=checkpoint["hyper_parameters"]["config"][
+                        "out_features"
+                    ],
+                )
                 dpt = DPT(embed_dims=DINO_SIZE_MAP[backbone_size])
                 model = torch.nn.Sequential(dino, dpt)
 
@@ -224,11 +253,20 @@ def main():
                 # load images (same as in src/data/dpt_datamodule.py)
                 norm_stat = torch.load(os.path.join("src", "data", "norm_stats.pt"))
 
-                norm = torchvision.transforms.Normalize(mean=norm_stat[:, 0], std=norm_stat[:, 1])
+                norm = torchvision.transforms.Normalize(
+                    mean=norm_stat[:, 0], std=norm_stat[:, 1]
+                )
+                print(args.images)
                 integral_images = norm(
                     torch.stack(
-                        [torchvision.io.read_image(file, ImageReadMode.GRAY).float().squeeze() for file in args.images],
-                        dim=0)
+                        [
+                            torchvision.io.read_image(file, ImageReadMode.GRAY)
+                            .float()
+                            .squeeze()
+                            for file in args.images
+                        ],
+                        dim=0,
+                    )
                 )
 
             # forward pass (unet or dpt)
@@ -264,7 +302,8 @@ def main():
                 inputs.to(device=device)
                 outputs = dino(**inputs)
                 embeddings.append(
-                    outputs.last_hidden_state[:, 1:, :])  # remove CLS token and keep only last hidden state
+                    outputs.last_hidden_state[:, 1:, :]
+                )  # remove CLS token and keep only last hidden state
 
             # stack the embeddings
             embeddings = torch.stack(embeddings, dim=1).to(device=device)
@@ -286,6 +325,8 @@ def main():
         plt.savefig(args.output)
         print(f"Saved output to: {args.output}")
     elif args.mode == "testset":
+        if "png" in args.output:
+            args.output = args.output.replace(".png", "")
         if args.model == "unet":
             from src.model.unet.unet import UNet
 
@@ -304,13 +345,20 @@ def main():
 
             for imgs in tqdm(args.images):
                 # skip images that dont have 4 focal planes
-                if len(imgs['integral_images']) != 4:
+                if len(imgs["integral_images"]) != 4:
                     continue
                 # load images (same as in src/data/image_datamodule.py)
                 integral_images = (
                     torch.stack(
-                        [torchvision.io.read_image(image[0], ImageReadMode.GRAY) for image in imgs['integral_images']],
-                        dim=0, ).squeeze().float())
+                        [
+                            torchvision.io.read_image(image[0], ImageReadMode.GRAY)
+                            for image in imgs["integral_images"]
+                        ],
+                        dim=0,
+                    )
+                    .squeeze()
+                    .float()
+                )
                 # standardize
                 integral_images = (integral_images - mean_ckpt) / std_ckpt
 
@@ -321,14 +369,18 @@ def main():
                 with torch.no_grad():
                     output = model(integral_images)
 
-                plt = plot_output_testset(integral_images.squeeze(0), output, imgs['GT'][0])
+                plt = plot_output_testset(
+                    integral_images.squeeze(0), output, imgs["GT"][0]
+                )
                 # plt.show()
-                outpath = os.path.join(args.output, imgs['batch'][0])
+                outpath = os.path.join(args.output, imgs["batch"][0])
                 if not os.path.exists(outpath):
                     os.makedirs(outpath)
-                outpath = os.path.join(outpath, imgs['image_id'][0]) + '.png'
+                outpath = os.path.join(outpath, imgs["image_id"][0]) + "_full.png"
                 plt.savefig(outpath)
                 plt.close()
+                # also save single output image
+                torchvision.utils.save_image(output, outpath.replace("full", "single"))
 
         elif args.model == "dpt":
             from src.model.dinov2.dinov2 import Dinov2
@@ -336,8 +388,10 @@ def main():
 
             backbone_size = checkpoint["hyper_parameters"]["config"]["backbone_size"]
 
-            dino = Dinov2(dinov2_size=backbone_size,
-                          out_features=checkpoint["hyper_parameters"]["config"]["out_features"])
+            dino = Dinov2(
+                dinov2_size=backbone_size,
+                out_features=checkpoint["hyper_parameters"]["config"]["out_features"],
+            )
             dpt = DPT(embed_dims=DINO_SIZE_MAP[backbone_size])
             model = torch.nn.Sequential(dino, dpt)
 
@@ -346,15 +400,23 @@ def main():
             # load images (same as in src/data/dpt_datamodule.py)
             norm_stat = torch.load(os.path.join("src", "data", "norm_stats.pt"))
 
-            norm = torchvision.transforms.Normalize(mean=norm_stat[:, 0], std=norm_stat[:, 1])
+            norm = torchvision.transforms.Normalize(
+                mean=norm_stat[:, 0], std=norm_stat[:, 1]
+            )
             for imgs in tqdm(args.images):
                 # skip images that dont have 4 focal planes
-                if len(imgs['integral_images']) != 4:
+                if len(imgs["integral_images"]) != 4:
                     continue
                 integral_images = norm(
                     torch.stack(
-                        [torchvision.io.read_image(image[0], ImageReadMode.GRAY) for image in imgs['integral_images']],
-                        dim=0).squeeze().float()
+                        [
+                            torchvision.io.read_image(image[0], ImageReadMode.GRAY)
+                            for image in imgs["integral_images"]
+                        ],
+                        dim=0,
+                    )
+                    .squeeze()
+                    .float()
                 )
 
                 # forward pass (unet or dpt)
@@ -364,14 +426,19 @@ def main():
                 with torch.no_grad():
                     output = model(integral_images)
 
-                plt = plot_output_testset(integral_images.squeeze(0), output, imgs['GT'][0])
+                plt = plot_output_testset(
+                    integral_images.squeeze(0), output, imgs["GT"][0]
+                )
                 # plt.show()
-                outpath = os.path.join(args.output, imgs['batch'][0])
+                outpath = os.path.join(args.output, imgs["batch"][0])
                 if not os.path.exists(outpath):
                     os.makedirs(outpath)
-                outpath = os.path.join(outpath, imgs['image_id'][0]) + '.png'
+                outpath = os.path.join(outpath, imgs["image_id"][0]) + "_full.png"
                 plt.savefig(outpath)
                 plt.close()
+                # also save single output image
+                torchvision.utils.save_image(output, outpath.replace("full", "single"))
+                
         elif args.model == "conv_decoder":
             # imports
             from src.model.dinov2.conv_decoder import ModifiedConvHead
@@ -395,21 +462,29 @@ def main():
 
             for imgs in tqdm(args.images):
                 # skip images that dont have 4 focal planes
-                if len(imgs['integral_images']) != 4:
+                if len(imgs["integral_images"]) != 4:
                     continue
                 embeddings = []
-                for image_path in imgs['integral_images']:
+                for image_path in imgs["integral_images"]:
                     image = Image.open(image_path[0])
                     inputs = processor(images=image, return_tensors="pt")
                     inputs.to(device=device)
                     outputs = dino(**inputs)
                     embeddings.append(
-                        outputs.last_hidden_state[:, 1:, :])  # remove CLS token and keep only last hidden state
+                        outputs.last_hidden_state[:, 1:, :]
+                    )  # remove CLS token and keep only last hidden state
 
                 integral_images = (
                     torch.stack(
-                        [torchvision.io.read_image(image[0], ImageReadMode.GRAY) for image in imgs['integral_images']],
-                        dim=0, ).squeeze().float())
+                        [
+                            torchvision.io.read_image(image[0], ImageReadMode.GRAY)
+                            for image in imgs["integral_images"]
+                        ],
+                        dim=0,
+                    )
+                    .squeeze()
+                    .float()
+                )
 
                 # stack the embeddings
                 embeddings = torch.stack(embeddings, dim=1).to(device=device)
@@ -419,14 +494,16 @@ def main():
                 with torch.no_grad():
                     output = conv_decoder(embeddings).squeeze(-1)
 
-                plt = plot_output_testset(integral_images, output, imgs['GT'][0])
+                plt = plot_output_testset(integral_images, output, imgs["GT"][0])
                 # plt.show()
-                outpath = os.path.join(args.output, imgs['batch'][0])
+                outpath = os.path.join(args.output, imgs["batch"][0])
                 if not os.path.exists(outpath):
                     os.makedirs(outpath)
-                outpath = os.path.join(outpath, imgs['image_id'][0]) + '.png'
+                outpath = os.path.join(outpath, imgs["image_id"][0]) + "_full.png"
                 plt.savefig(outpath)
                 plt.close()
+                # also save single output image
+                torchvision.utils.save_image(output, outpath.replace("full", "single"))
 
 
 if __name__ == "__main__":
