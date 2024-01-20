@@ -10,3 +10,4 @@ rich
 matplotlib
 torchinfo
 einops
+tqdm

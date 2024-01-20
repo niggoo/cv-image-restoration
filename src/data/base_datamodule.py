@@ -4,6 +4,7 @@ from lightning import LightningDataModule
 import torch
 from torch.utils.data import DataLoader, Dataset
 import re
+import json
 
 
 class BaseDataModule(LightningDataModule):
@@ -200,6 +201,15 @@ class BaseDataModule(LightningDataModule):
         :param state_dict: The datamodule state returned by `self.state_dict()`.
         """
         pass
+
+    def save_paths(self, train_path, val_path, test_path) -> None:
+        """Save the paths of the train/val/test to json files."""
+        with open(train_path, "w") as file:
+            json.dump(self.data_train.data_paths, file, indent=4)
+        with open(val_path, "w") as file:
+            json.dump(self.data_val.data_paths, file, indent=4)
+        with open(test_path, "w") as file:
+            json.dump(self.data_test.data_paths, file, indent=4)
 
 
 if __name__ == "__main__":

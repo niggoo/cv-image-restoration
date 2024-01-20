@@ -108,6 +108,8 @@ class EmbeddingDataModule(BaseDataModule):
             self.data_train, self.data_val, self.data_test = random_split(
                 dataset, self.hparams.data_split
             )
+        
+        self.save_paths("data_paths_train.json", "data_paths_val.json", "data_paths_test.json")
 
 
 if __name__ == "__main__":
