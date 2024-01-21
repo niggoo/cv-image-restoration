@@ -431,7 +431,6 @@ class DPT(nn.Module):
             Default: 768.
         post_process_channels (List): Out channels of post process conv
             layers. Default: [96, 192, 384, 768].
-        readout_type (str): Type of readout operation. Default: 'ignore'.
         patch_size (int): The patch size. Default: 16.
         expand_channels (bool): Whether expand the channels in post process
             block. Default: False.

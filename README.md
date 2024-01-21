@@ -1,6 +1,9 @@
 # Image Reconstruction, Computer Vision, WS2023/24, Group A6
 We use ````PyTorchLightning````, HuggingFace ````Transformers```` to load the model weights, and ```hydra``` to manage configurations.
 
+## Get started
+For inference see the Chapter [Testing/Inference](#testinginference) and for training the model see Chapter [Data](#data) and [Training](#training).
+
 ## Directory Structure
 
     ../src
