@@ -136,12 +136,14 @@ def plot_output(args, output):
 
     for idx, image_path in enumerate(args.images):
         ax = fig.add_subplot(2, 4, idx + 1)
-        ax.imshow(Image.open(image_path).resize((512, 512)), cmap="gray")
+        ax.imshow(
+            Image.open(image_path).resize((512, 512)), cmap="gray", vmin=0, vmax=255
+        )
         ax.axis("off")
         ax.set_title(f"Focal length {focal_lengths[idx]}")
 
     ax = fig.add_subplot(2, 4, 5)
-    ax.imshow(output.cpu().numpy().squeeze(), cmap="gray")
+    ax.imshow(output.cpu().numpy().squeeze(), vmin=0, vmax=1, cmap="gray")
     ax.axis("off")
     fig.text(
         0.1, 0.28, "Output", ha="center", va="center", rotation="vertical", fontsize=20
@@ -158,19 +160,19 @@ def plot_output_testset(integrals, output, gt):
 
     for idx, image in enumerate(integrals):
         ax = fig.add_subplot(2, 4, idx + 1)
-        ax.imshow(image.cpu().numpy().squeeze(), cmap="gray")
+        ax.imshow(image.cpu().numpy().squeeze(), cmap="gray", vmin=0, vmax=1)
         ax.axis("off")
         ax.set_title(f"Focal length {focal_lengths[idx]}")
 
     ax = fig.add_subplot(2, 4, 5)
-    ax.imshow(output.cpu().numpy().squeeze(), cmap="gray")
+    ax.imshow(output.cpu().numpy().squeeze(), cmap="gray", vmin=0, vmax=1)
     ax.axis("off")
     fig.text(
         0.1, 0.28, "Output", ha="center", va="center", rotation="vertical", fontsize=20
     )
 
     ax = fig.add_subplot(2, 4, 7)
-    ax.imshow(Image.open(gt), cmap="gray")
+    ax.imshow(Image.open(gt), cmap="gray", vmin=0, vmax=255)
     ax.axis("off")
     fig.text(
         0.5, 0.28, "GT", ha="center", va="center", rotation="vertical", fontsize=20
@@ -182,6 +184,7 @@ def main():
     args = parse_args_and_validate()
 
     # set the device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     device = "cpu"
 
     # load checkpoint
@@ -256,6 +259,7 @@ def main():
                 norm = torchvision.transforms.Normalize(
                     mean=norm_stat[:, 0], std=norm_stat[:, 1]
                 )
+
                 print(args.images)
                 integral_images = norm(
                     torch.stack(
@@ -324,6 +328,9 @@ def main():
         # plt.show()
         plt.savefig(args.output)
         print(f"Saved output to: {args.output}")
+        # also save single output image
+        torchvision.utils.save_image(output, args.output.replace(".png", "_single.png"))
+
     elif args.mode == "testset":
         if "png" in args.output:
             args.output = args.output.replace(".png", "")
@@ -426,8 +433,15 @@ def main():
                 with torch.no_grad():
                     output = model(integral_images)
 
+                # do the inverse normalization on the integral images
+                integral_images = integral_images * norm_stat[:, 1].view(4, 1, 1) + norm_stat[
+                    :, 0
+                ].view(4, 1, 1)
+                integral_images = integral_images.squeeze(0) / 255
                 plt = plot_output_testset(
-                    integral_images.squeeze(0), output, imgs["GT"][0]
+                    integral_images,
+                    output,
+                    imgs["GT"][0],
                 )
                 # plt.show()
                 outpath = os.path.join(args.output, imgs["batch"][0])
@@ -438,7 +452,7 @@ def main():
                 plt.close()
                 # also save single output image
                 torchvision.utils.save_image(output, outpath.replace("full", "single"))
-                
+
         elif args.model == "conv_decoder":
             # imports
             from src.model.dinov2.conv_decoder import ModifiedConvHead
