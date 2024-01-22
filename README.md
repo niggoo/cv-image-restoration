@@ -82,7 +82,7 @@ You can make inference on an already trained model using ````test.py``. Example 
 > python test.py --model dpt --ckpt /path/to/file/dpt.ckp
 You can also pass a folder path to the script with 4 integral images (0m, -0.5m, -1m, -1.5m in that order and 512x512 pixels).
 
-You can find model checkpoints and their corresponding configs [here](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing).
+You can find model the final model checkpoint on [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing). The config corresponds to ```configs/dino-dpt.yaml```.
 
 The script then saves the output of the selected model and input as a .png files.
 
@@ -92,7 +92,7 @@ For further details on our results, please refer to our report and presentation 
 
 Our best model is DINOv2 (small) in combination with the DPT decoder, using the MSGE with a weight of 2 (so the final loss becomess MSE + 2*MSGE) and no oversampling, comprising roughly 24.4M parameters, of which are only 3.1M parameters are trainable - most of them (i.e., from the DINOv2 backbone) remain frozen. For the full config, please see ```configs/dino-dpt.yaml```.
 
-Some plots of training can be found [here](https://api.wandb.ai/links/cv2023-a6/062b67j4)..
+Some plots of training can be found [here](https://api.wandb.ai/links/cv2023-a6/062b67j4).
 
 The model can be downloaded on [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing). In this folder, you can also find all the test set outputs by the model.
 
