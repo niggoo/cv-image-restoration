@@ -66,14 +66,16 @@ To train a model run `test_train.py` - it takes some arguments but the current d
 You can load configs via hydra:
 > python3 test_train.py config-name=dino-dpt
 
-The above command should also reproduce our results. In this case, a focal stack for all provided images should be produced (0m, -0.5m, -1m, -1.5m). The paths of the files should then be created via ```src/data/generate_data_json.py```
-
 Loads the configuration as defined in ````configs/dino-dpt.yaml`` and starts training, including wandb logging.
+
+The above command should also reproduce our results. In this case, a focal stack for all provided images should be produced (0m, -0.5m, -1m, -1.5m). The paths of the files should then be created via ```src/data/generate_data_json.py```.
 
 You can also pass custom parameters to hydra, e.g.:
 > python3 test_train.py config-name=dino-dpt loss.msge_weight=2.0
 
 We train our models on a cluster of 4 Nvidia GTX2080Ti GPUs. For further details on hyperparameters, please to the ```configs/``` folder and the respective model configurations.
+
+We also provide some training, validation, and testing metrics in our [wandb report](https://api.wandb.ai/links/cv2023-a6/062b67j4).
 
 ## Testing/Inference
 You can make inference on an already trained model using ````test.py``. Example usage:
@@ -100,7 +102,7 @@ The model can be downloaded [HERE, TODO!!!](LINK). In this folder, you can also 
 - Download the input focal stack images and ground truth (for plotting) images from [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing) and unpack the file to the folder ```test_data_folder```. In this folder, there should then be 14145 .png files in total.
 - Run ```python test.py --ckpt models/model.ckpt --mode testset --images test_data_paths.json```. By default, it uses the image paths from the downloaded test set, specified via ```used_test_data_paths.json```.
 - The outputs are in ```output/``` and in the respective subdirectories, corresponding to the provided folder structure (batches/parts). We show both single output images (just the model output) as well as full output images (focal stack/input, ground truth, and model output) to get a better understanding.
-- Running this should get the same results as in ```model_outputs.tar.gz``` from [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing). We put a subset of outputs into ```sample_outputs/```
+- Running this should get the same results as in ```model_outputs.tar.gz``` and the ``outputs/`` folder from [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing). We put a subset of outputs into ```sample_outputs/```.
 
 ### Real Focal Stack
 - Download the model (```model.ckpt```) from [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing) to the ````models/`` folder (if not already done; same as for Test Set).
