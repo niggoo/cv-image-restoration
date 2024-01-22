@@ -92,9 +92,9 @@ For further details on our results, please refer to our report and presentation 
 
 Our best model is DINOv2 (small) in combination with the DPT decoder, using the MSGE with a weight of 2 (so the final loss becomess MSE + 2*MSGE) and no oversampling, comprising roughly 24.4M parameters, of which are only 3.1M parameters are trainable - most of them (i.e., from the DINOv2 backbone) remain frozen. For the full config, please see ```configs/dino-dpt.yaml```.
 
-Some plots of the training can be found [HERE, TODO!!!](LINK).
+Some plots of the training can be found [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing).
 
-The model can be downloaded [HERE, TODO!!!](LINK). In this folder, you can also find all the test set outputs by the model.
+The model can be downloaded [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing). In this folder, you can also find all the test set outputs by the model.
 
 ## Testing/Inference
 ### Test Set
