@@ -1,8 +1,9 @@
 import json
 import random
 
+
 def get_splits(data_paths_json_path: str):
-    """ 
+    """
     Simulate splits used during training to get the same splits for the test set.
     """
     data_paths = []
@@ -20,8 +21,9 @@ def get_splits(data_paths_json_path: str):
     train_paths = data_paths[:train_size]
     val_paths = data_paths[train_size : train_size + val_size]
     test_paths = data_paths[train_size + val_size :]
-    
+
     return train_paths, val_paths, test_paths
+
 
 if __name__ == "__main__":
     data_path = "data_paths.json"

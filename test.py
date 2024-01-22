@@ -50,8 +50,8 @@ def parse_args_and_validate():
     parser.add_argument(
         "--model",
         type=str,
-        required=True,
         choices=valid_models,
+        default="dpt",
         help="Model to use for inference (conv_decoder, unet, dpt)",
     )
     parser.add_argument(
@@ -185,7 +185,6 @@ def main():
 
     # set the device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = "cpu"
 
     # load checkpoint
     checkpoint = torch.load(args.ckpt, map_location=device)
@@ -405,7 +404,9 @@ def main():
             model.load_state_dict(checkpoint["state_dict"])
 
             # load images (same as in src/data/dpt_datamodule.py)
-            norm_stat = torch.load(os.path.join("src", "data", "norm_stats.pt"))
+            norm_stat = torch.load(os.path.join("src", "data", "norm_stats.pt")).to(
+                device
+            )
 
             norm = torchvision.transforms.Normalize(
                 mean=norm_stat[:, 0], std=norm_stat[:, 1]
@@ -434,9 +435,9 @@ def main():
                     output = model(integral_images)
 
                 # do the inverse normalization on the integral images
-                integral_images = integral_images * norm_stat[:, 1].view(4, 1, 1) + norm_stat[
-                    :, 0
-                ].view(4, 1, 1)
+                integral_images = integral_images * norm_stat[:, 1].view(
+                    4, 1, 1
+                ) + norm_stat[:, 0].view(4, 1, 1)
                 integral_images = integral_images.squeeze(0) / 255
                 plt = plot_output_testset(
                     integral_images,

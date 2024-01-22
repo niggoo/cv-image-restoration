@@ -62,9 +62,11 @@ To train our models, we use a random 80/10/10 split for training, validation, an
 
 ## Training
 
-To train a model run `test_train.py` - it takes some arguments but the current default should be fine.
+To train a model run `test_train.py` - it takes some arguments but the current default should be fine. These are also the ones for our final model.
 You can load configs via hydra:
 > python3 test_train.py config-name=dino-dpt
+
+The above command should also reproduce our results. In this case, a focal stack for all provided images should be produced (0m, -0.5m, -1m, -1.5m). The paths of the files should then be created via ```src/data/generate_data_json.py```
 
 Loads the configuration as defined in ````configs/dino-dpt.yaml`` and starts training, including wandb logging.
 
@@ -82,7 +84,25 @@ You can find model checkpoints and their corresponding configs [here](https://dr
 
 The script then saves the output of the selected model and input as a .png files.
 
+With the --testset flag it is possible to produce images on all the test set images. To replicate our test set, please see ```src/data/get_splits.py```.
+
 For further details on our results, please refer to our report and presentation slides.
 
-Our best model is DINOv2 (small) in combination with the DPT decoder, using the MSGE with a weight of 2 (so the final loss becomess MSE + 2*MSGE) and no oversampling, comprising roughly 24.4M parameters, of which are only 3.1M parameters are trainable - most of them (i.e., from the DINOv2 backbone) remain frozen.
+Our best model is DINOv2 (small) in combination with the DPT decoder, using the MSGE with a weight of 2 (so the final loss becomess MSE + 2*MSGE) and no oversampling, comprising roughly 24.4M parameters, of which are only 3.1M parameters are trainable - most of them (i.e., from the DINOv2 backbone) remain frozen. For the full config, please see ```configs/dino-dpt.yaml```.
 
+Some plots of the training can be found [HERE, TODO!!!](LINK).
+
+The model can be downloaded [HERE, TODO!!!](LINK). In this folder, you can also find all the test set outputs by the model.
+
+## Testing/Inference
+### Test Set
+- Download the model (```model.ckpt```) from [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing) to the ````models/`` folder.H
+- Download the input focal stack images and ground truth (for plotting) images from [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing) and unpack the file to the folder ```test_data_folder```. In this folder, there should then be 14145 .png files in total.
+- Run ```python test.py --ckpt models/model.ckpt --mode testset --images test_data_paths.json```. By default, it uses the image paths from the downloaded test set, specified via ```used_test_data_paths.json```.
+- The outputs are in ```output/``` and in the respective subdirectories, corresponding to the provided folder structure (batches/parts). We show both single output images (just the model output) as well as full output images (focal stack/input, ground truth, and model output) to get a better understanding.
+- Running this should get the same results as in ```model_outputs.tar.gz``` from [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing). We put a subset of outputs into ```sample_outputs/```
+
+### Real Focal Stack
+- Download the model (```model.ckpt```) from [Our Drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing) to the ````models/`` folder (if not already done; same as for Test Set).
+- Run ```python test.py --ckpt models/model.ckpt --mode single```. By default, it uses the single provided real focal stack image (as seen in the folder ```real_focal_stack```).
+- Similarly, we save both single and full output images as .png files to the current directory (output.png & output_single.png).
