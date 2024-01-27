@@ -7,10 +7,9 @@ __pycache__/
 data/**
 downloaded/
 *.ckpt
-*.png
 transformers/**
 wandb/**
-test_train.py
 outputs/**
 .vscode/**
 .ipynb_checkpoints
+test_data/*.png

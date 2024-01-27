@@ -1,8 +1,32 @@
 # Image Reconstruction, Computer Vision, WS2023/24, Group A6
-We use ````PyTorchLightning````, HuggingFace ````Transformers```` to load the model weights, and ```hydra``` to manage configurations.
+Please follow the steps outlined in this document to generate predictions based on our model.
 
-## Get started
-For inference see the Chapter [Testing/Inference](#testinginference) and for training the model see Chapter [Data](#data) and [Training](#training).
+## Download model
+Download the file `model.ckpt` from this [link](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing) directly into the folder `weights`.
+
+## Prepare input data
+Our `test.py` script can operate in two modes: 
+- "single": The script takes a single focal stack and generates a single prediction based on it. For this purpose you should put your focal stack consisting of four images {0m, 0.5m, 1m, 1.5m} into the `single_input`-folder.
+- "testset": The script generates predictions for an entire set of images. For this purpose you should download the file `test_data.tar.gz` from our [drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing) and extract the contents directly into the `test_data`-folder. There should be 14145 png-files in total. The file `test_data_paths.json` in the root directory is a helper-file for generating the predictions and should be left as it is.
+
+## Testing/Inference
+To generate predictions for a single focal stack, run
+`python test.py`. This command takes the focal stack from `single_input` and places its predictions into `results`.
+
+To generate predictions for all the images in `test_data`, run `python test.py --mode testset --images test_data_paths.json`. This command takes the images from the folder and places their predictions into 'results' into subfolders corresponding to the structure provided to us (batches). We save both a single output image as well as a graph comparing input, output and ground truth. The results should be the same as in the outputs-folder in our [drive](https://drive.google.com/drive/folders/1ueuF1zs5QTb5_t6qXZaQjHwnOwg8Y_6n?usp=sharing). Please note that this testset-mode currently only works for the given dataset. To generate predictions for other inputs please use the single-mode.
+
+These parameters can additionally be set for the command:
+- --ckpt: Path to the model checkpoint/weights. Default: "./weights/model.ckpt"
+- --output: Path to save the predictions at. Default: "./results"
+- --mode: Whether to generate predictions for a single focal stack or for an entire set: Options: ["single", "testset"]. Default: "single".
+- --images: 
+   - In single-mode: A list of four focal stack images or the path to the directory containing them. Default: "./single_input".
+   - In testset-mode: Path to the json-file containing the data for the testset.
+
+## Training
+TODO
+
+# Old Readme
 
 ## Directory Structure
 

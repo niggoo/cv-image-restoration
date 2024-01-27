@@ -26,7 +26,7 @@ from src.model.restoration_module import RestorationLitModule
 from src.model.unet.unet import UNet
 from src.model.dinov2.dinov2 import Dinov2
 from src.model.dinov2.dpt import DPT
-from test_plot import plot_images, plot_pred_image
+from src.utils.test_plot import plot_images, plot_pred_image
 
 DINO_SIZE_MAP = {
     "small": 384,
@@ -35,7 +35,7 @@ DINO_SIZE_MAP = {
 }
 
 
-@hydra.main(version_base=None, config_path="./configs/", config_name="dino-dpt")
+@hydra.main(version_base=None, config_path="./src/configs/", config_name="dino-dpt")
 def main(config: DictConfig):
     # set seeds for numpy, torch and python.random
     seed_everything(420, workers=True)
