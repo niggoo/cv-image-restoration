@@ -254,7 +254,7 @@ def get_datamodule(config):
 if __name__ == "__main__":
     main()
     # some example commands:
-    # python3 test_train.py config-name=unet
-    # python3 test_train.py config-name=unet img_standardization.mean=100 learning_rate=0.0001
-    # python3 test_train.py --config-name=dino
-    # python3 test_train.py --config-name=dino 'wandb.experiment_name=Small 1e-3, oversample'
+    # python3 train.py config-name=unet
+    # python3 train.py config-name=unet img_standardization.mean=100 learning_rate=0.0001
+    # python3 train.py --config-name=dino
+    # python3 train.py --config-name=dino 'wandb.experiment_name=Small 1e-3, oversample'
