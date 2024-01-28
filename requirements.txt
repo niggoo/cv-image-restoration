@@ -1,8 +1,6 @@
-pytorch
-torchvision
 wandb
 hydra-core
-lightning
+lightning==1.9.0
 transformers
 safetensors
 pillow
@@ -11,3 +9,5 @@ matplotlib
 torchinfo
 einops
 tqdm
+chardet
+    

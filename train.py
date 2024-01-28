@@ -12,7 +12,7 @@ from lightning.pytorch.callbacks import (
     LearningRateMonitor,
     ModelCheckpoint,
 )
-from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.loggers import WandbLogger, CSVLogger
 from omegaconf import DictConfig, OmegaConf
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -44,7 +44,10 @@ def main(config: DictConfig):
     device = "gpu" if torch.cuda.is_available() else "cpu"
 
     # logging is done using wandb
-    wandb_logger = init_wandb(config)
+    if config.logging:
+        logger = init_wandb(config)
+    else:
+        logger = CSVLogger("logs", name=config.wandb.experiment_name)
 
     # training dataset loading
     datamodule = get_datamodule(config)
@@ -74,7 +77,7 @@ def main(config: DictConfig):
 
     if config.logging:
         image_logging_callback = ImageLoggingCallback(
-            datamodule, num_samples=100, wandb_logger=wandb_logger
+            datamodule, num_samples=100, logger=logger
         )
         callbacks.append(image_logging_callback)
 
@@ -92,7 +95,7 @@ def main(config: DictConfig):
     # on which kind of device(s) to train and possible callbacks as well as set up for Mixed Precision
     trainer = L.Trainer(
         max_epochs=config.n_epochs,
-        logger=wandb_logger if config.logging else None,
+        logger=logger,
         callbacks=callbacks,
         default_root_dir=None,  # change dirc if needed
         precision=config.precision if hasattr(config, "precision") else "32",
