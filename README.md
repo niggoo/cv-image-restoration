@@ -86,8 +86,10 @@ These parameters can additionally be set for the command:
 
 If the integral images are not yet generated, please follow the instructions in
 the [integral generation README.md](src/data/generate_integral_images/README.md) file in `src/data/generate_integral_images`.
+Using our integral generation process makes sure the correct folder and name structure is generated.
 
-Run the ```src/data/generate_data_json.py``` script on your own machine as it will use absolute paths to the data.
+When the integral images (focal planes of 0m, -0.5m, -1m and 1.5m) exist and are in the below mentioned folder and name structure,
+run the ```src/data/generate_data_json.py``` script on your own machine as it will use absolute paths to the data.
 
 The folders for integral images and the given data from the lecture are given as command line arguments:
 
@@ -100,7 +102,7 @@ This file contains the paths to the data and is used by the DataSet class.
 
 Optionally you can provide a ```--emb_dir``` to add the paths to precomputed DINOV2 embeddings to the json file. These, however, are not needed for our final mdoel.
 
-Folder Structure of the raw data and the integral images should be as follows:
+Folder Structure of the raw data and the integral images must be as follows:
 
     ../data/download
     ├── batch_20230912_part1-006
