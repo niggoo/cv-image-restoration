@@ -84,7 +84,7 @@ These parameters can additionally be set for the command:
 
 ### Preparing the Data
 
-If the ingegral images are not yet generated, please follow the instructions in
+If the integral images are not yet generated, please follow the instructions in
 the [integral generation README.md](src/data/generate_integral_images/README.md) file in `src/data/generate_integral_images`.
 
 Run the ```src/data/generate_data_json.py``` script on your own machine as it will use absolute paths to the data.
