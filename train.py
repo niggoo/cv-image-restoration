@@ -77,7 +77,7 @@ def main(config: DictConfig):
 
     if config.logging:
         image_logging_callback = ImageLoggingCallback(
-            datamodule, num_samples=100, logger=logger
+            datamodule, num_samples=100, wandb_logger=logger
         )
         callbacks.append(image_logging_callback)
 
