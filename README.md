@@ -51,10 +51,17 @@ Our `test.py` script can operate in two modes:
 ## Testing/Inference
 
 To generate predictions for a single focal stack, run
-`python test.py`. This command takes the focal stack from `single_input` and places its predictions into `results`.
+```
+python test.py
+```
+This command takes the focal stack from `single_input` and places its predictions into `results`.
 
 To generate predictions for all the images in `test_data`,
-run `python test.py --mode testset --images test_data_paths.json`. This command takes the images from the folder and
+run 
+```
+python test.py --mode testset --images test_data_paths.json
+```
+This command takes the images from the folder and
 places their predictions into 'results' into subfolders corresponding to the structure provided to us (batches). We save
 both a single output image as well as a graph comparing input, output and ground truth. The results should be the same
 as in the outputs-folder in
@@ -78,7 +85,7 @@ These parameters can additionally be set for the command:
 ### Preparing the Data
 
 If the ingegral images are not yet generated, please follow the instructions in
-the [integral generation README.md](src/data/generate_integral_images/README.md) file.
+the [integral generation README.md](src/data/generate_integral_images/README.md) file in `src/data/generate_integral_images`.
 
 Run the ```src/data/generate_data_json.py``` script on your own machine as it will use absolute paths to the data.
 
@@ -144,20 +151,3 @@ the ```configs/``` folder and the respective model configurations.
 
 We also provide some training, validation, and testing metrics of our final model in
 our [wandb report](https://api.wandb.ai/links/cv2023-a6/062b67j4).
-
-## Directory Structure
-
-    ../src
-    ├── data   (place for all data stuff)
-    │   ├── base_datamodule   (Parent LightningModule used for all datamodules)
-    │   ├──  emb_datamodule   (LightningModule for loading Dinov2 Embeddings, for Conv-Decoder)
-    │   ├── image_datamodule   (LightningModule for loading Images (UNet))
-    │   ├── dpt_datamodule   (LightningModule for loading Images (DINOv2 + DPT Decoder))
-    ├──  model   (place for all model stuff)
-    │   ├── unet   (Our baseline model)
-    │   ├── dinov2   (Implements DINOv2 model parts & decoders: Simple Convolutional & DPT)
-    │   restoration_module.py (Base LightningModule that we use for training all models)
-    ├──  utils   (some additional utils)
-    test_train.py   (to do the training)
-    test.py  (to make inference using a model checkpoint and input image stack)
-    ../configs (lists all default configs using hydra)
