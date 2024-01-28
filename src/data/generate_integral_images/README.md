@@ -59,6 +59,12 @@ And make sure the `data.json` file is in the same folder as the script or refere
 data_json_path = "data.json"
 ```
 
+Here you can also select which focal planes to generate. In our case we used 0m, -0.5m, -1m and 1.5m.
+
+```python
+focal_planes = [0.0, -0.5, -1.0, -1.5]
+```
+
 Then run
 
 ```
