@@ -1,7 +1,0 @@
-PyGML
-opencv-python
-numpy
-cython
-utm
-matplotlib
-scipy

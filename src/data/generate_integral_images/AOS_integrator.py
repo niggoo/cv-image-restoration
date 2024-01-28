@@ -3,21 +3,22 @@ import numpy as np
 import cv2
 import os
 import math
-
+import glm
 from typing import List
 
-# from LFR_utils import read_poses_and_images, pose_to_virtualcamera, init_aos, init_window
-from LFR.python.LFR_utils import (
-    read_poses_and_images,
-    pose_to_virtualcamera,
-    init_aos,
-    init_window,
-)
+try:
+    from LFR.python.LFR_utils import (
+        read_poses_and_images,
+        pose_to_virtualcamera,
+        init_aos,
+        init_window,
+    )
+    import LFR.python.LFR_utils as utils
+    import LFR.python.pyaos as pyaos
 
-# import LFR_utils as utils
-import LFR.python.LFR_utils as utils
-import LFR.python.pyaos as pyaos
-import glm
+except ImportError as e:
+    print("Failed to import LFR dependencies. Make sure they are imported correctly.")
+    raise e
 
 
 ####################################################################################################################
@@ -259,17 +260,19 @@ if __name__ == "__main__":
 
     numbers = re.compile(r"(\d+)")
 
+
     def numericalSort(value):
         parts = numbers.split(value)
         parts[1::2] = map(int, parts[1::2])
         return parts
+
 
     imagelist = []
 
     import glob
 
     for img in sorted(
-        glob.glob(r"test/test_input_images" + "/*.png"), key=numericalSort
+            glob.glob(r"test/test_input_images" + "/*.png"), key=numericalSort
     ):  # Enter path to the images directory which should contain 11 images.
         print(img)
         n = cv2.imread(img)

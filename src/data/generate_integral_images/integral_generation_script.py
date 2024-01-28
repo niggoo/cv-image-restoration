@@ -26,7 +26,8 @@ if __name__ == "__main__":
     os.makedirs(integral_images_path, exist_ok=True)
 
     # load the json file
-    with open("data.json") as json_file:
+    data_json_path = "data.json"
+    with open(data_json_path) as json_file:
         data = json.load(json_file)
 
     # create a list of focal planes
